@@ -11,8 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class RsvpController extends Controller
@@ -38,7 +36,7 @@ class RsvpController extends Controller
         $event = \App\Models\Event::findOrFail($guestEvent->event_id);
 
         // Get fabric types linked to this event through event_fabric_type pivot table
-        $fabricTypes = \DB::table('event_fabric_type')
+        $fabricTypes = DB::table('event_fabric_type')
             ->join('fabric_types', 'event_fabric_type.fabric_type_id', '=', 'fabric_types.id')
             ->where('event_fabric_type.event_id', $event->id)
             ->where('fabric_types.is_active', true)
@@ -158,7 +156,7 @@ class RsvpController extends Controller
         $fabricSelection = null;
         if ($request->has('fabric_types') && count($request->fabric_types) > 0) {
             // Get fabrics linked to this event with custom prices from event_fabric_type pivot table
-            $eventFabrics = \DB::table('event_fabric_type')
+            $eventFabrics = DB::table('event_fabric_type')
                 ->join('fabric_types', 'event_fabric_type.fabric_type_id', '=', 'fabric_types.id')
                 ->where('event_fabric_type.event_id', $event->id)
                 ->whereIn('event_fabric_type.fabric_type_id', $request->fabric_types)
@@ -192,10 +190,9 @@ class RsvpController extends Controller
 
             $totalAmount = $totalFabricCost + $deliveryCost;
 
-            // For confirmed guests, store in session for preview before payment
+            // For confirmed guests, create a pending fabric selection and redirect to payment summary
             if ($request->input('attendance_status') === 'confirmed') {
-                session()->put('pending_fabric_selection', [
-                    'token' => $token,
+                $fabricSelection = \App\Models\GuestFabricSelection::create([
                     'guest_id' => $guest->id,
                     'event_id' => $event->id,
                     'fabric_selections' => $fabricSelections,
@@ -204,11 +201,19 @@ class RsvpController extends Controller
                     'delivery_cost' => $deliveryCost,
                     'total_amount' => $totalAmount,
                     'payment_method' => $request->input('payment_method', 'online'),
+                    'payment_status' => 'pending',
                 ]);
 
-                // Redirect to preview summary without saving to database
-                return redirect()->route('payment.preview', ['token' => $token])
-                    ->with('success', 'Please review your order details before proceeding to payment.');
+                // Send order confirmation email
+                if ($guest->email) {
+                    Mail::to($guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
+                }
+
+                // Redirect to payment summary
+                return redirect()->route('payment.summary', [
+                    'token' => $token,
+                    'order_id' => $fabricSelection->id
+                ])->with('success', 'Please review your order details before proceeding to payment.');
             }
 
             // For declined guests who want to purchase fabric, save immediately
@@ -248,9 +253,6 @@ class RsvpController extends Controller
             if ($guest->email) {
                 Mail::to($guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
             }
-
-            // Send order to external delivery middleware
-            $this->sendOrderToDeliveryMiddleware($fabricSelection, $guest, $event);
         }
 
         // Handle package selection and payment if provided
@@ -302,13 +304,38 @@ class RsvpController extends Controller
             }
         }
 
-        // Handle address update if requested
+        // Handle address update if requested (also persist latitude/longitude if provided)
         if ($request->boolean('update_address')) {
-            $guest->update([
+            $updateData = [
                 'address' => $request->input('delivery_address'),
                 'city_id' => $request->input('delivery_city_id'),
                 'state_id' => $request->input('delivery_state_id'),
-            ]);
+            ];
+
+            // Only update latitude/longitude when provided (allow empty string to clear)
+            if ($request->has('delivery_latitude')) {
+                $updateData['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
+            }
+
+            if ($request->has('delivery_longitude')) {
+                $updateData['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
+            }
+
+            $guest->update($updateData);
+        } else {
+            // If the user did not request a full address update but latitude/longitude were provided
+            // persist them so geocoding from the address autocomplete isn't lost.
+            $latLngUpdate = [];
+            if ($request->has('delivery_latitude')) {
+                $latLngUpdate['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
+            }
+            if ($request->has('delivery_longitude')) {
+                $latLngUpdate['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
+            }
+
+            if (!empty($latLngUpdate)) {
+                $guest->update($latLngUpdate);
+            }
         }
 
         // Redirect to payment summary if fabric was selected and has a payable amount
@@ -346,92 +373,6 @@ class RsvpController extends Controller
             ['name' => $cityName, 'state_id' => $stateId]
         );
         return $city->id;
-    }
-
-    /**
-     * Send order data to external delivery middleware
-     */
-    private function sendOrderToDeliveryMiddleware($fabricSelection, $guest, $event)
-    {
-        try {
-            // Prepare order data according to the expected format
-            $orderData = [
-                'external_order_id' => 'RSVP-' . $fabricSelection->id . '-' . time(),
-                'zone_id' => $fabricSelection->delivery_zone_id ?? 2, // Default to zone 2 if not specified
-
-                'customer_name' => $guest->full_name,
-                'customer_email' => $guest->email,
-                'customer_phone' => $guest->phone,
-
-                'street_address' => $guest->address ?? 'No address provided',
-                'city' => $guest->city?->name ?? 'Lagos',
-                'state' => $guest->state?->name ?? 'Lagos',
-
-                'order_amount' => (int) $fabricSelection->total_amount, // Amount is already in kobo format
-
-                'items' => []
-            ];
-
-            // Add fabric items to the order
-            foreach ($fabricSelection->fabric_selections as $fabric) {
-                $orderData['items'][] = [
-                    'name' => $fabric['name'],
-                    'quantity' => $fabric['quantity'] ?? 1,
-                    'price' => (int) $fabric['price'] // Price is already in the correct format (kobo)
-                ];
-            }
-
-            // Note: Delivery service is NOT added as a separate item to the order items array
-            // as requested. The delivery cost is already included in the total_amount field.
-
-            // Send the order to the external endpoint
-            $apiUrl = config('delivery.middleware_url') . config('delivery.endpoints.orders');
-            $apiKey = config('delivery.middleware_api_key');
-
-            $response = Http::timeout(config('delivery.timeout'))
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'X-API-KEY' => $apiKey
-                ])
-                ->post($apiUrl, $orderData);
-
-            // Log the response for debugging
-            \Log::info('Delivery middleware API response', [
-                'order_id' => $fabricSelection->id,
-                'status' => $response->status(),
-                'response' => $response->body(),
-                'request_data' => $orderData
-            ]);
-
-            if ($response->successful()) {
-                $responseData = $response->json();
-
-                // Store the external order ID if returned
-                if (isset($responseData['order_id'])) {
-                    $fabricSelection->update([
-                        'external_order_id' => $responseData['order_id']
-                    ]);
-                }
-
-                \Log::info('Order successfully sent to delivery middleware', [
-                    'fabric_selection_id' => $fabricSelection->id,
-                    'external_order_id' => $responseData['order_id'] ?? null
-                ]);
-            } else {
-                \Log::error('Failed to send order to delivery middleware', [
-                    'fabric_selection_id' => $fabricSelection->id,
-                    'status' => $response->status(),
-                    'response' => $response->body(),
-                    'request_data' => $orderData
-                ]);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Exception occurred while sending order to delivery middleware', [
-                'fabric_selection_id' => $fabricSelection->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
     }
 
     public function citiesByState(State $state): JsonResponse

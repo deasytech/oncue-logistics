@@ -25,6 +25,14 @@ class GuestFactory extends Factory
       'last_name' => fake()->lastName(),
       'email' => fake()->unique()->safeEmail(),
       'phone' => fake()->phoneNumber(),
+      // Ensure there is at least one state and city to satisfy foreign keys in tests
+      'state_id' => function () {
+        return \App\Models\State::firstOrCreate(['name' => 'Test State'])->id;
+      },
+      'city_id' => function () {
+        $stateId = \App\Models\State::firstOrCreate(['name' => 'Test State'])->id;
+        return \App\Models\City::firstOrCreate(['name' => 'Test City', 'state_id' => $stateId], ['state_id' => $stateId])->id;
+      },
     ];
   }
 }

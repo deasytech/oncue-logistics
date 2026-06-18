@@ -271,6 +271,12 @@
                                 value="{{ $deliveryAddress['address'] }}" autocomplete="off">
                             <p class="mt-1 text-xs text-gray-500">Start typing to search for an address. Select from
                                 the dropdown suggestions.</p>
+
+                            <!-- Hidden fields to capture geocoded latitude/longitude -->
+                            <input type="hidden" name="delivery_latitude" id="delivery_latitude"
+                                value="{{ $guest->latitude ?? '' }}">
+                            <input type="hidden" name="delivery_longitude" id="delivery_longitude"
+                                value="{{ $guest->longitude ?? '' }}">
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
@@ -1026,6 +1032,21 @@
 
                     // Generate new session token after place selection
                     state.sessionToken = generateSessionToken();
+
+                    // Populate hidden latitude/longitude inputs if available
+                    try {
+                        const latInput = document.getElementById('delivery_latitude');
+                        const lngInput = document.getElementById('delivery_longitude');
+                        if (place.location?.lat !== undefined && place.location?.lng !== undefined) {
+                            if (latInput) latInput.value = place.location.lat;
+                            if (lngInput) lngInput.value = place.location.lng;
+                        } else {
+                            if (latInput) latInput.value = '';
+                            if (lngInput) lngInput.value = '';
+                        }
+                    } catch (err) {
+                        console.warn('Could not set delivery lat/lng inputs', err);
+                    }
 
                     hideSuggestions();
                     console.log('[GooglePlaces] Address selected:', formattedAddress);

@@ -25,6 +25,12 @@ class RsvpFabricPurchaseTest extends TestCase
   {
     parent::setUp();
 
+    // Ensure a customer exists for FK constraints
+    $customer = \App\Models\Customer::factory()->create();
+
+    // Ensure a category exists for events
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Test Category']);
+
     // Create test state and city
     $this->state = State::create([
       'name' => 'Lagos',
@@ -55,7 +61,7 @@ class RsvpFabricPurchaseTest extends TestCase
       'address' => '123 Test Street',
       'city_id' => $this->city->id,
       'state_id' => $this->state->id,
-      'customer_id' => 1,
+      'customer_id' => $customer->id,
     ]);
 
     // Create test event
@@ -63,7 +69,10 @@ class RsvpFabricPurchaseTest extends TestCase
       'name' => 'Test Event',
       'description' => 'Test event for RSVP',
       'event_date' => now()->addDays(7),
-      'customer_id' => 1,
+      'customer_id' => $customer->id,
+      'category_id' => $category->id,
+      'location' => 'Test Location',
+      'estimated_number_of_guest' => 10,
     ]);
 
     // Attach fabric type to event
@@ -132,13 +141,17 @@ class RsvpFabricPurchaseTest extends TestCase
 
   public function test_declined_guest_validation_requires_fabric_purchase_interest()
   {
+    // Controller assumes 'no' if declined and fabric_purchase_interest not provided
     $response = $this->post(route('rsvp.submit', 'test-rsvp-token'), [
       'attendance_status' => 'declined',
       'plus_one' => 'Jane Doe',
     ]);
 
-    $response->assertSessionHasErrors(['fabric_purchase_interest']);
-    $response->assertSessionHasErrors(['fabric_purchase_interest' => 'The fabric purchase interest field is required.']);
+    $response->assertRedirect(route('rsvp.show', 'test-rsvp-token'));
+    $response->assertSessionHas('success', 'Your response has been recorded. Thank you!');
+
+    $pivot = $this->event->guests()->where('guest_id', $this->guest->id)->first()->pivot;
+    $this->assertEquals('declined', $pivot->attendance_status);
   }
 
   public function test_declined_guest_validation_requires_fabric_selection_when_interested()

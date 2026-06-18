@@ -24,6 +24,21 @@ class TwilioService
     $this->senderId = config('services.twilio.sender_id');
     $this->defaultCountryCode = config('services.twilio.default_country_code', '234');
 
+    // Normalize and validate WhatsApp FROM number (should be E.164 without the "whatsapp:" prefix)
+    if (!empty($this->whatsappFromNumber)) {
+      $normalized = preg_replace('/^whatsapp:/i', '', $this->whatsappFromNumber);
+      $normalized = preg_replace('/[^\d+]/', '', $normalized);
+      if (!str_starts_with($normalized, '+') && str_starts_with($normalized, $this->defaultCountryCode)) {
+        $normalized = '+' . $normalized;
+      }
+      if (preg_match('/^\+\d{7,15}$/', $normalized)) {
+        $this->whatsappFromNumber = $normalized;
+      } else {
+        Log::warning('Configured Twilio WhatsApp FROM number is invalid; WhatsApp messages will be skipped.', ['configured' => $this->whatsappFromNumber]);
+        $this->whatsappFromNumber = '';
+      }
+    }
+
     if (empty($sid) || empty($token)) {
       Log::warning('Twilio is not configured: missing SID/token.');
       return;

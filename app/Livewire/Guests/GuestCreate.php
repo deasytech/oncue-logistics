@@ -61,7 +61,7 @@ class GuestCreate extends Component
         'name' => 'required|string|max:255',
         'email' => 'nullable|email',
         'phone' => 'nullable|digits:11',
-        'address' => 'nullable|string|max:500',
+        'address' => 'required|string|max:500',
         'latitude' => 'nullable|numeric',
         'longitude' => 'nullable|numeric',
         'state_id' => 'nullable|exists:states,id',
@@ -322,6 +322,13 @@ class GuestCreate extends Component
             $this->state_id = $foundState->id;
             $this->updatedStateId($foundState->id);
         }
+    }
+
+    #[On('coordinates-updated')]
+    public function handleCoordinatesUpdated($latitude = null, $longitude = null)
+    {
+        $this->latitude  = $latitude  !== null ? (string) $latitude  : $this->latitude;
+        $this->longitude = $longitude !== null ? (string) $longitude : $this->longitude;
     }
 
     #[On('address-geocoded')]

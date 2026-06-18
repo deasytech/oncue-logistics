@@ -19,8 +19,15 @@ class Guest extends Model
         'address',
         'city_id',
         'state_id',
+        'latitude',
+        'longitude',
         // 'rsvp_status',
         'notes',
+    ];
+
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function customer()

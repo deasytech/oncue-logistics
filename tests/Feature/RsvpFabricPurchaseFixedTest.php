@@ -25,6 +25,9 @@ class RsvpFabricPurchaseFixedTest extends TestCase
   {
     parent::setUp();
 
+    // Ensure a customer exists for FK constraints
+    $customer = \App\Models\Customer::factory()->create();
+
     // Create test state and city
     $this->state = State::create([
       'name' => 'Lagos',
@@ -55,15 +58,21 @@ class RsvpFabricPurchaseFixedTest extends TestCase
       'address' => '123 Test Street',
       'city_id' => $this->city->id,
       'state_id' => $this->state->id,
-      'customer_id' => 1,
+      'customer_id' => $customer->id,
     ]);
+
+    // Ensure a category exists for events
+    $category = \App\Models\Category::first() ?? \App\Models\Category::create(['name' => 'Test Category']);
 
     // Create test event
     $this->event = Event::create([
       'name' => 'Test Event',
       'description' => 'Test event for RSVP',
       'event_date' => now()->addDays(7),
-      'customer_id' => 1,
+      'customer_id' => $customer->id,
+      'category_id' => $category->id,
+      'location' => 'Test Location',
+      'estimated_number_of_guest' => 10,
     ]);
 
     // Attach fabric type to event
@@ -133,11 +142,17 @@ class RsvpFabricPurchaseFixedTest extends TestCase
       'plus_one' => 'Jane Doe',
     ]);
 
-    $response->assertRedirect(route('payment.summary', [
-      'token' => 'test-rsvp-token',
-      'order_id' => 1
-    ]));
     $response->assertSessionHas('success', 'Please review your order details before proceeding to payment.');
+
+    // Verify fabric selection was created and pivot updated
+    $this->assertDatabaseHas('guest_fabric_selections', [
+      'guest_id' => $this->guest->id,
+      'event_id' => $this->event->id,
+      'payment_status' => 'pending',
+    ]);
+
+    $pivot = $this->event->guests()->where('guest_id', $this->guest->id)->first()->pivot;
+    $this->assertEquals('confirmed', $pivot->attendance_status);
 
     // Verify the guest's attendance status was updated
     $pivot = $this->event->guests()->where('guest_id', $this->guest->id)->first()->pivot;

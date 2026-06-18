@@ -23,6 +23,8 @@ class GuestEdit extends Component
     public $state_id = null;
     public $city_id = null;
     public string $address = '';
+    public $latitude = null;
+    public $longitude = null;
     public $showNotificationConfirm = false;
 
     public function mount($guest)
@@ -45,6 +47,8 @@ class GuestEdit extends Component
         $this->rsvp_status = $this->guest->rsvp_status;
         $this->notes = $this->guest->notes;
         $this->address = $this->guest->address ?? '';
+        $this->latitude = $this->guest->latitude;
+        $this->longitude = $this->guest->longitude;
         $this->state_id = $this->guest->state_id;
         $this->city_id = $this->guest->city_id;
 
@@ -73,7 +77,9 @@ class GuestEdit extends Component
         'customer_id' => 'required|exists:customers,id',
         'selectedEvents' => 'nullable|array',
         'selectedEvents.*' => 'exists:events,id',
-        'address' => 'nullable|string|max:500',
+        'address' => 'required|string|max:500',
+        'latitude' => 'nullable|numeric',
+        'longitude' => 'nullable|numeric',
         'state_id' => 'nullable|exists:states,id',
         'city_id' => 'nullable|exists:cities,id',
     ];
@@ -100,6 +106,8 @@ class GuestEdit extends Component
             'rsvp_status' => $this->rsvp_status,
             'notes' => $this->notes,
             'address' => $this->address,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
             'state_id' => $this->state_id,
             'city_id' => $this->city_id,
         ]);
@@ -235,6 +243,23 @@ class GuestEdit extends Component
             if (!empty($data['value'])) {
                 $this->autoPopulateStateFromAddress($data['value']);
             }
+        }
+    }
+
+    #[On('coordinates-updated')]
+    public function handleCoordinatesUpdated($latitude = null, $longitude = null)
+    {
+        $this->latitude  = $latitude  !== null ? (string) $latitude  : $this->latitude;
+        $this->longitude = $longitude !== null ? (string) $longitude : $this->longitude;
+    }
+
+    #[On('address-geocoded')]
+    public function handleAddressGeocoded($field = null, $value = null, $latitude = null, $longitude = null)
+    {
+        if ($field === 'address') {
+            $this->address   = $value ?? $this->address;
+            $this->latitude  = $latitude  !== null ? (string) $latitude  : $this->latitude;
+            $this->longitude = $longitude !== null ? (string) $longitude : $this->longitude;
         }
     }
 

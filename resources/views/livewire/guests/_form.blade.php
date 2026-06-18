@@ -1,15 +1,6 @@
 <div title="{{ $isEdit ? __('Edit Guest') : __('Add Guest') }}">
     <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
         <div class="flex items-center justify-between">
-            <div>
-                {{-- <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-                    {{ $isEdit ? 'Edit Guest' : 'Add Guest' }}
-                </h1>
-                <p class="text-gray-600 dark:text-gray-400">
-                    {{ $isEdit ? 'Update guest information' : 'Add a new guest to your event list' }}
-                </p> --}}
-            </div>
-
             <a href="{{ route('guests.list') }}" wire:navigate
                 class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 font-medium rounded-lg transition-colors duration-200">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,8 +211,9 @@
                                 </div>
                             </div>
 
-                            <!-- Manual trigger and status -->
-                            <div class="mt-2 flex items-center gap-3">
+                            <!-- Manual trigger and status — wire:ignore prevents Livewire from
+                                 resetting the status text or hidden input values on re-render -->
+                            <div class="mt-2 flex items-center gap-3" wire:ignore>
                                 <button id="geocode_btn" type="button"
                                     class="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-700"
                                     disabled>
@@ -231,29 +223,60 @@
                                     coordinates generated</span>
                             </div>
 
-                            <!-- Hidden fields to store coordinates for client-side consumers -->
-                            <input type="hidden" id="latitude_store" name="latitude_store" />
-                            <input type="hidden" id="longitude_store" name="longitude_store" />
+                            <!-- Hidden fields — wire:ignore stops Livewire morphing these back to null
+                                 after coordinates-updated triggers a re-render. The server values are
+                                 set via the coordinates-updated event handler instead. -->
+                            <div wire:ignore>
+                                <input type="hidden" id="latitude_store" />
+                                <input type="hidden" id="longitude_store" />
+                            </div>
 
                             <script>
                                 (function() {
-                                    // Helper to find the address input rendered by x-google-places-input
                                     function findAddressInput() {
-                                        // prefer input[name="address"]
                                         return document.querySelector(
                                             'input[name="address"], input#address, input[placeholder*="Start typing"]');
                                     }
 
                                     let geocodeBtn = null;
                                     let geolocationCheckbox = null;
-                                    let statusEl = null;
-                                    let latInput = null;
-                                    let lngInput = null;
 
                                     function setStatus(text, isError = false) {
-                                        if (!statusEl) return;
-                                        statusEl.textContent = text;
-                                        statusEl.classList.toggle('text-red-600', isError);
+                                        const el = document.getElementById('geocode_status');
+                                        if (!el) return;
+                                        el.textContent = text;
+                                        el.classList.toggle('text-red-600', isError);
+                                        el.classList.toggle('text-gray-500', !isError);
+                                    }
+
+                                    // ── Single function that pushes both coordinates to Livewire atomically.
+                                    // One dispatch = one network round-trip = one re-render, no race condition.
+                                    // The status span and hidden inputs are wrapped in wire:ignore so Livewire
+                                    // never morphs them back to their server-rendered "empty" state.
+                                    function applyCoordinates(lat, lng, label) {
+                                        const latVal = String(Number(lat));
+                                        const lngVal = String(Number(lng));
+
+                                        // Write directly to DOM — these inputs are wire:ignore so they persist.
+                                        const latEl = document.getElementById('latitude_store');
+                                        const lngEl = document.getElementById('longitude_store');
+                                        if (latEl) latEl.value = latVal;
+                                        if (lngEl) lngEl.value = lngVal;
+
+                                        setStatus(label + ': ' + Number(lat).toFixed(6) + ', ' + Number(lng).toFixed(6));
+
+                                        // Dispatch to Livewire — one round-trip sets both $latitude and $longitude.
+                                        @this.dispatch('coordinates-updated', {
+                                            latitude: latVal,
+                                            longitude: lngVal
+                                        });
+
+                                        window.dispatchEvent(new CustomEvent('geolocation-ready', {
+                                            detail: {
+                                                latitude: Number(lat),
+                                                longitude: Number(lng)
+                                            }
+                                        }));
                                     }
 
                                     async function geocodeAddress(address) {
@@ -289,12 +312,10 @@
                                         }
 
                                         // Fallback: try calling Google Geocode REST API (requires API key)
-                                        // NOTE: Replace YOUR_API_KEY or provide server-side geocoding if needed.
                                         if (window.fetch) {
                                             try {
                                                 const PLACES_API_KEY = @json(config('services.google.places_api_key', ''));
                                                 if (!PLACES_API_KEY) {
-                                                    // No client key available — request server-side geocoding immediately
                                                     if (window.Livewire && typeof Livewire.emit === 'function') {
                                                         try {
                                                             Livewire.emit('request-server-geocode', {
@@ -322,10 +343,8 @@
                                                         raw: data.results[0]
                                                     };
                                                 } else {
-                                                    // If client-side REST is denied (e.g., key restricted), request server-side geocode
                                                     if (data.status === 'REQUEST_DENIED' || data.status === 'INVALID_REQUEST' || data
                                                         .status === 'OVER_QUERY_LIMIT') {
-                                                        // Ask Livewire server to perform geocoding using server API key
                                                         if (window.Livewire && typeof Livewire.emit === 'function') {
                                                             try {
                                                                 Livewire.emit('request-server-geocode', {
@@ -354,12 +373,9 @@
                                         geocodeBtn = document.getElementById('geocode_btn');
                                         geolocationCheckbox = document.getElementById('geolocation_required');
                                         statusEl = document.getElementById('geocode_status');
-                                        latInput = document.getElementById('latitude_store');
-                                        lngInput = document.getElementById('longitude_store');
 
                                         const addressInput = findAddressInput();
 
-                                        // Enable button only after checkbox is checked
                                         function updateControls() {
                                             const checked = geolocationCheckbox && geolocationCheckbox.checked;
                                             if (geocodeBtn) geocodeBtn.disabled = !checked;
@@ -376,32 +392,8 @@
                                                 try {
                                                     const result = await geocodeAddress(address);
                                                     if (result) {
-                                                        latInput.value = result.latitude;
-                                                        lngInput.value = result.longitude;
-                                                        setStatus('Coordinates generated: ' + result.latitude.toFixed(6) + ', ' +
-                                                            result.longitude.toFixed(6));
-                                                        // Dispatch a custom event for any delivery API consumer to pick up coordinates
-                                                        window.dispatchEvent(new CustomEvent('geolocation-ready', {
-                                                            detail: {
-                                                                address: address,
-                                                                latitude: result.latitude,
-                                                                longitude: result.longitude,
-                                                                raw: result.raw
-                                                            }
-                                                        }));
-                                                        // Also emit a Livewire event in case backend listens
-                                                        if (window.Livewire && typeof Livewire.emit === 'function') {
-                                                            try {
-                                                                Livewire.emit('address-geocoded', {
-                                                                    field: 'address',
-                                                                    value: address,
-                                                                    latitude: result.latitude,
-                                                                    longitude: result.longitude
-                                                                });
-                                                            } catch (e) {
-                                                                // ignore emit errors
-                                                            }
-                                                        }
+                                                        applyCoordinates(result.latitude, result.longitude,
+                                                        'Coordinates generated');
                                                     }
                                                 } catch (err) {
                                                     console.error(err);
@@ -411,24 +403,14 @@
                                             });
                                         }
 
-                                        // If an address value is updated by the places input, optionally auto-run geocode when checkbox is checked
                                         if (addressInput) {
                                             addressInput.addEventListener('change', function() {
-                                                // If user has checked checkbox, automatically trigger generation
                                                 if (geolocationCheckbox && geolocationCheckbox.checked) {
                                                     geocodeBtn && geocodeBtn.click();
                                                 } else {
                                                     setStatus(
                                                         'Address changed — check the box and click Generate coordinates to produce lat/lng.'
                                                     );
-                                                }
-                                            });
-
-                                            // Some autocomplete widgets update via 'input' event
-                                            addressInput.addEventListener('input', function() {
-                                                if (geolocationCheckbox && geolocationCheckbox.checked) {
-                                                    // Do not auto-fire on every keystroke; only when input likely complete.
-                                                    // No-op here; user can click Generate.
                                                 }
                                             });
 
@@ -440,44 +422,18 @@
                                                     const place = detail.place || {};
                                                     const location = place.location || place.geometry || place.geometry?.location ||
                                                         null;
-                                                    // Support variations: {lat,lng} or {latitude,longitude}
                                                     let lat = null;
                                                     let lng = null;
                                                     if (location) {
-                                                        lat = location.lat ?? location.latitude ?? (location.lat ? location.lat : null);
-                                                        lng = location.lng ?? location.longitude ?? (location.lng ? location.lng :
-                                                            null);
+                                                        lat = location.lat ?? location.latitude ?? null;
+                                                        lng = location.lng ?? location.longitude ?? null;
                                                     } else if (place.location && typeof place.location === 'object') {
                                                         lat = place.location.lat ?? place.location.latitude;
                                                         lng = place.location.lng ?? place.location.longitude;
                                                     }
 
                                                     if (lat !== null && lng !== null && lat !== undefined && lng !== undefined) {
-                                                        latInput.value = Number(lat);
-                                                        lngInput.value = Number(lng);
-                                                        setStatus('Coordinates from selection: ' + Number(lat).toFixed(6) + ', ' +
-                                                            Number(lng).toFixed(6));
-                                                        // Notify consumers
-                                                        window.dispatchEvent(new CustomEvent('geolocation-ready', {
-                                                            detail: {
-                                                                address: addressInput.value,
-                                                                latitude: Number(lat),
-                                                                longitude: Number(lng),
-                                                                raw: detail
-                                                            }
-                                                        }));
-                                                        if (window.Livewire && typeof Livewire.emit === 'function') {
-                                                            try {
-                                                                Livewire.emit('address-geocoded', {
-                                                                    field: 'address',
-                                                                    value: addressInput.value,
-                                                                    latitude: Number(lat),
-                                                                    longitude: Number(lng)
-                                                                });
-                                                            } catch (e) {
-                                                                // ignore
-                                                            }
-                                                        }
+                                                        applyCoordinates(Number(lat), Number(lng), 'Coordinates from selection');
                                                     }
                                                 } catch (err) {
                                                     // ignore
@@ -486,26 +442,17 @@
                                         }
                                     }
 
-                                    // Initialize when DOM is ready
-                                    // Listen for server-side geocode responses
-                                    if (window.Livewire && typeof Livewire.on === 'function') {
-                                        Livewire.on('address-geocoded', function(data) {
-                                            try {
-                                                if (data && (data.latitude !== undefined) && (data.longitude !== undefined)) {
-                                                    latInput.value = data.latitude;
-                                                    lngInput.value = data.longitude;
-                                                    setStatus('Coordinates received: ' + Number(data.latitude).toFixed(6) + ', ' +
-                                                        Number(data.longitude).toFixed(6));
-                                                    // Dispatch same custom event so delivery API consumers behave consistently
-                                                    window.dispatchEvent(new CustomEvent('geolocation-ready', {
-                                                        detail: data
-                                                    }));
-                                                }
-                                            } catch (e) {
-                                                // ignore errors
+                                    // Listen for coordinates dispatched by the google-places-autocomplete component
+                                    // (it fires 'address-geocoded' via @this.dispatch when a place is selected).
+                                    document.addEventListener('livewire:init', function() {
+                                        Livewire.on('address-geocoded', function(payload) {
+                                            const data = Array.isArray(payload) ? payload[0] : payload;
+                                            if (data && data.latitude !== undefined && data.longitude !== undefined) {
+                                                applyCoordinates(data.latitude, data.longitude, 'Coordinates from selection');
                                             }
                                         });
-                                    }
+                                    });
+
                                     if (document.readyState === 'loading') {
                                         document.addEventListener('DOMContentLoaded', init);
                                     } else {

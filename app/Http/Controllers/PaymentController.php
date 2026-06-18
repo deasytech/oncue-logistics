@@ -374,6 +374,8 @@ class PaymentController extends Controller
                 'street_address' => $guest->address ?? 'No address provided',
                 'city' => $guest->city?->name ?? 'Lagos',
                 'state' => $guest->state?->name ?? 'Lagos',
+                'latitude' => $guest->latitude ?? null,
+                'longitude' => $guest->longitude ?? null,
 
                 'order_amount' => (int) $fabricSelection->total_amount, // Amount is already in kobo format
 
