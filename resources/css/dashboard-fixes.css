@@ -1,0 +1,237 @@
+/* Dashboard UI Fixes and Improvements */
+
+/* General dashboard layout improvements */
+.fi-main {
+    @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Widget spacing and layout */
+.fi-widgets-container {
+    @apply gap-6;
+}
+
+/* Fix widget card styling */
+.fi-section {
+    @apply rounded-xl shadow-sm border border-gray-200 dark:border-gray-700;
+    background: white;
+}
+
+.dark .fi-section {
+    background: rgb(17 24 39);
+}
+
+/* Improve widget headers */
+.fi-section-header {
+    @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700;
+}
+
+.fi-section-header-heading {
+    @apply text-lg font-semibold text-gray-900 dark:text-white;
+}
+
+/* Fix stat cards layout */
+.grid.grid-cols-1.md\:grid-cols-4 {
+    @apply gap-4;
+}
+
+.grid.grid-cols-1.md\:grid-cols-4 > div {
+    @apply p-4 rounded-lg border;
+}
+
+/* Improve stat card colors and contrast */
+.bg-blue-50 {
+    @apply bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800;
+}
+
+.bg-green-50 {
+    @apply bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800;
+}
+
+.bg-purple-50 {
+    @apply bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800;
+}
+
+.bg-orange-50 {
+    @apply bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800;
+}
+
+/* Fix text contrast in stat cards */
+.text-blue-600 {
+    @apply text-blue-600 dark:text-blue-400;
+}
+.text-blue-900 {
+    @apply text-blue-900 dark:text-blue-100;
+}
+.text-green-600 {
+    @apply text-green-600 dark:text-green-400;
+}
+.text-green-900 {
+    @apply text-green-900 dark:text-green-100;
+}
+.text-purple-600 {
+    @apply text-purple-600 dark:text-purple-400;
+}
+.text-purple-900 {
+    @apply text-purple-900 dark:text-purple-100;
+}
+.text-orange-600 {
+    @apply text-orange-600 dark:text-orange-400;
+}
+.text-orange-900 {
+    @apply text-orange-900 dark:text-orange-100;
+}
+
+/* Improve chart and list containers */
+.space-y-6 > .grid.grid-cols-1.lg\:grid-cols-2 {
+    @apply gap-6;
+}
+
+/* Fix list items styling */
+.bg-gray-50 {
+    @apply bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+}
+
+.dark .bg-gray-50 {
+    @apply bg-gray-800;
+}
+
+/* Improve recent activity items */
+.p-3.bg-gray-50 {
+    @apply p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow;
+}
+
+/* Fix text colors for better readability */
+.text-gray-700 {
+    @apply text-gray-700 dark:text-gray-300;
+}
+.text-gray-900 {
+    @apply text-gray-900 dark:text-white;
+}
+.text-gray-500 {
+    @apply text-gray-500 dark:text-gray-400;
+}
+.text-gray-600 {
+    @apply text-gray-600 dark:text-gray-400;
+}
+
+/* Improve badge styling */
+.px-2.py-1.text-xs {
+    @apply px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.bg-primary-100 {
+    @apply bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200;
+}
+
+/* Fix progress bars */
+.w-20.bg-gray-200 {
+    @apply w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden;
+}
+
+.bg-blue-600 {
+    @apply bg-blue-600 dark:bg-blue-500;
+}
+
+/* Improve event cards */
+.border-l-4 {
+    @apply border-l-4 border-indigo-500;
+}
+
+/* Fix spacing in event cards */
+.flex.items-center.gap-4 {
+    @apply flex flex-wrap items-center gap-2 sm:gap-4;
+}
+
+/* Improve responsive layout */
+@media (max-width: 768px) {
+    .grid.grid-cols-1.md\:grid-cols-4 {
+        @apply grid-cols-2 gap-3;
+    }
+
+    .grid.grid-cols-1.md\:grid-cols-3 {
+        @apply grid-cols-1 gap-4;
+    }
+
+    .grid.grid-cols-1.lg\:grid-cols-2 {
+        @apply grid-cols-1 gap-4;
+    }
+
+    .fi-main {
+        @apply px-4;
+    }
+}
+
+@media (max-width: 640px) {
+    .grid.grid-cols-1.md\:grid-cols-4 {
+        @apply grid-cols-1 gap-3;
+    }
+}
+
+/* Fix dark mode transitions */
+.dark * {
+    @apply transition-colors duration-200;
+}
+
+/* Improve sidebar styling consistency */
+.fi-sidebar {
+    @apply bg-gradient-to-b from-slate-700 to-slate-800 dark:from-gray-800 dark:to-gray-900;
+}
+
+/* Fix topbar styling */
+.fi-topbar {
+    @apply bg-indigo-800 dark:bg-gray-900;
+}
+
+/* Improve table styling */
+.fi-ta-table {
+    @apply rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700;
+}
+
+/* Fix button styling */
+.fi-btn {
+    @apply rounded-lg font-medium transition-colors;
+}
+
+/* Improve form styling */
+.fi-input {
+    @apply rounded-lg border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
+}
+
+/* Fix card shadows */
+.shadow-sm {
+    @apply shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+/* Improve empty state styling */
+.text-center.py-8 {
+    @apply py-8 text-center;
+}
+
+/* Fix icon colors */
+.text-blue-500 {
+    @apply text-blue-500 dark:text-blue-400;
+}
+.text-green-500 {
+    @apply text-green-500 dark:text-green-400;
+}
+.text-purple-500 {
+    @apply text-purple-500 dark:text-purple-400;
+}
+.text-orange-500 {
+    @apply text-orange-500 dark:text-orange-400;
+}
+
+/* Improve loading states */
+.animate-pulse {
+    @apply animate-pulse;
+}
+
+/* Fix tooltip styling */
+.tippy-box {
+    @apply rounded-lg shadow-lg;
+}
+
+/* Improve dropdown styling */
+.fi-dropdown-panel {
+    @apply rounded-lg shadow-lg border border-gray-200 dark:border-gray-700;
+}

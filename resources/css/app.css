@@ -1,0 +1,223 @@
+@import "tailwindcss";
+@import "../../vendor/livewire/flux/dist/flux.css";
+@import "./dashboard-fixes.css";
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+
+    --color-zinc-50: #fafafa;
+    --color-zinc-100: #f5f5f5;
+    --color-zinc-200: #e5e5e5;
+    --color-zinc-300: #d4d4d4;
+    --color-zinc-400: #a3a3a3;
+    --color-zinc-500: #737373;
+    --color-zinc-600: #525252;
+    --color-zinc-700: #404040;
+    --color-zinc-800: #262626;
+    --color-zinc-900: #171717;
+    --color-zinc-950: #0a0a0a;
+
+    --color-accent: var(--color-neutral-800);
+    --color-accent-content: var(--color-neutral-800);
+    --color-accent-foreground: var(--color-white);
+}
+
+@layer theme {
+    .dark {
+        --color-accent: var(--color-white);
+        --color-accent-content: var(--color-white);
+        --color-accent-foreground: var(--color-neutral-800);
+    }
+}
+
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/* \[:where(&)\]:size-4 {
+    @apply size-4;
+} */
+
+.fi-sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+
+/* Custom animations for package customizer */
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes priceFlash {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        color: #db2777;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Package customizer styles */
+.package-customizer {
+    select,
+    input {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    select:focus,
+    input:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(219, 39, 119, 0.15);
+    }
+
+    button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .float-animation {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .price-update {
+        animation: priceFlash 0.5s ease-in-out;
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, #db2777, #9333ea);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Admin theme */
+body.fi-body {
+    @apply bg-slate-50 dark:bg-gray-950;
+}
+
+main.fi-main {
+    @apply px-2;
+}
+
+aside.fi-sidebar {
+    @apply bg-gradient-to-b from-slate-700 to-slate-800 dark:bg-gradient-to-b dark:from-gray-800 dark:to-gray-900;
+
+    & .fi-sidebar-nav-groups {
+        @apply gap-y-3;
+    }
+
+    & .fi-sidebar-nav {
+        @apply px-4 pt-4;
+
+        & li.fi-sidebar-item {
+            & .fi-sidebar-item-label,
+            .fi-sidebar-item-icon {
+                @apply text-gray-100;
+            }
+        }
+
+        & li.fi-sidebar-item-active,
+        li.fi-sidebar-item:hover {
+            & .fi-sidebar-item-label,
+            .fi-sidebar-item-icon {
+                @apply text-indigo-500;
+            }
+        }
+
+        & .fi-sidebar-group-button span,
+        button {
+            @apply text-indigo-300;
+        }
+    }
+
+    header.fi-sidebar-header {
+        @apply bg-slate-800 dark:bg-gray-900 h-12;
+
+        & .fi-logo {
+            @apply text-white;
+        }
+    }
+}
+
+/* Topbar */
+div.fi-topbar nav {
+    @apply bg-indigo-800 dark:bg-gray-900 h-12;
+}
+
+/* Table */
+table.fi-ta-table {
+    & thead tr {
+        @apply bg-gradient-to-br from-slate-700 to-slate-800 dark:bg-none;
+
+        & th span {
+            @apply text-white;
+        }
+
+        & th.fi-ta-cell div.px-3.py-4 {
+            @apply py-3;
+        }
+
+        & th.fi-ta-header-cell {
+            @apply py-3;
+        }
+    }
+
+    & tbody tr {
+        & td.fi-ta-cell {
+            & div.px-3.py-4 {
+                @apply py-[0.3rem];
+            }
+
+            & button {
+                @apply py-[0.3rem];
+            }
+        }
+    }
+}

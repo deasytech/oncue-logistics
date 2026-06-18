@@ -1,0 +1,40 @@
+Updates
+
+-   Guest receive an SMS on when box will be delivery
+
+Customization flow:
+-   Customer customized their box for the aso ebi delivery and it stops there
+-   Guest gets a link to the cart showing the package that the customer has customized and then make payment and then delivery is triggered.
+
+Customer Flow: (DONE)
+-   Create Event
+-   Create Delivery Order (Delivery Service: Only Aso Ebi & Invitation, Aso Ebi, Invitation & Packaging, Invitation Card (Apply to Corporate only), Packages Only)
+-   Customer makes payment
+-   Access to upload guest list
+
+Delivery Services Flow: (DONE)
+-   Select Delivery Service
+-   If Package is selected: Direct them to package customization page
+-   If Package is not selected, redirect them to payment page to choose between Online and Offline Payment
+-   If Offline is selected, after payment direct them to where to upload the screenshot of their payment receipt.
+
+Guest Flow:
+- Guest receives an Email and SMS and then they follow the link to confirm their attendance and choose their aso ebi
+- Tick Additional Info: Aso Ebi Fabric, Gele (Head tie), Fila (Men's cap), Invitation Card
+- If anything selected aside Invitation Card, direct them to payment gateway and then provide delivery address.
+- Upload proof of payment to Oncue.
+
+Dashboard:
+- Add total amount received per event
+- Show the guest that has paid and the one pending payment
+
+
+
+NEW UPDATES
+- Estimated guest should be a minimum of 50 while creating a new event. (DONE)
+- Make all fields mandatory in the package customization. (DONE)
+- Add delivery service options in the cart view page. (DONE)
+- Once payment has been confirmed by the admin, send an email to the customer telling him/her that the payment has been confirmed. (DONE)
+ - Online receipt did not drop (DONE)
+
+
