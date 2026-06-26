@@ -74,8 +74,8 @@ class GuestList extends Component
         $this->guestToDelete = null;
     }
 
-    /** 
-     * Render guest list with pagination and search 
+    /**
+     * Render guest list with pagination and search
      */
     public function render()
     {
@@ -83,15 +83,19 @@ class GuestList extends Component
 
         // Check if user has customer relationship
         if (!$user || !$user->customer) {
-            // Return empty paginated result to maintain compatibility with view
             $emptyGuests = Guest::with('customer')
-                ->whereRaw('1=0') // This will return no results
+                ->whereRaw('1=0')
                 ->paginate(10);
 
             return view('livewire.guests.guest-list', [
                 'guests' => $emptyGuests,
+                'hasInactiveEvents' => false,
             ]);
         }
+
+        $hasInactiveEvents = $user->customer->events()
+            ->where('is_active', false)
+            ->exists();
 
         $guests = Guest::with('customer')
             ->when($this->search, function ($query) {
@@ -105,8 +109,10 @@ class GuestList extends Component
             ->where('customer_id', $user->customer->id)
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
+
         return view('livewire.guests.guest-list', [
             'guests' => $guests,
+            'hasInactiveEvents' => $hasInactiveEvents,
         ]);
     }
 }

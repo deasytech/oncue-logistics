@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\GuestFabricSelection;
 use App\Mail\GuestOrderConfirmationMail;
+use App\Mail\GuestPaymentReminderMail;
 use App\Services\DeliveryZoneService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +151,63 @@ class PaymentController extends Controller
     }
 
     /**
+     * Handle summary form submission: update guest email if empty, then proceed
+     */
+    public function submitSummary(Request $request, $token, $order_id)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $fabricSelection = GuestFabricSelection::with('guest')->findOrFail($order_id);
+
+        // Verify the order belongs to the guest with this token
+        $guestEvent = DB::table('event_guest')
+            ->where('rsvp_token', $token)
+            ->where('guest_id', $fabricSelection->guest_id)
+            ->first();
+
+        if (!$guestEvent) {
+            abort(404, 'Invalid order or token.');
+        }
+
+        // Update guest email if currently empty
+        if (empty($fabricSelection->guest->email)) {
+            $fabricSelection->guest->update(['email' => $request->email]);
+        }
+
+        // Route based on payment method
+        if ($fabricSelection->payment_method === 'online') {
+            return $this->initializePaystack($token, $order_id);
+        }
+
+        return redirect()->route('payment.offline', ['token' => $token, 'order_id' => $order_id]);
+    }
+
+    /**
+     * Show offline payment instructions
+     */
+    public function showOfflineInstructions($token, $order_id)
+    {
+        $fabricSelection = GuestFabricSelection::with('guest')->findOrFail($order_id);
+
+        // Verify the order belongs to the guest with this token
+        $guestEvent = DB::table('event_guest')
+            ->where('rsvp_token', $token)
+            ->where('guest_id', $fabricSelection->guest_id)
+            ->first();
+
+        if (!$guestEvent) {
+            abort(404, 'Invalid order or token.');
+        }
+
+        return view('pages.payment.offline-confirmation', [
+            'fabricSelection' => $fabricSelection,
+            'token' => $token,
+        ]);
+    }
+
+    /**
      * Initialize Paystack payment
      */
     public function initializePaystack($token, $order_id)
@@ -260,6 +318,15 @@ class PaymentController extends Controller
                 'paid_at' => now(),
             ]);
 
+            // Now that payment is confirmed, mark the guest's RSVP as confirmed
+            DB::table('event_guest')
+                ->where('rsvp_token', $token)
+                ->where('guest_id', $fabricSelection->guest_id)
+                ->update([
+                    'attendance_status' => 'confirmed',
+                    'rsvp_responded_at' => now(),
+                ]);
+
             // Send order to delivery middleware after successful payment
             $this->sendOrderToDeliveryMiddleware($fabricSelection);
 
@@ -271,10 +338,19 @@ class PaymentController extends Controller
             return redirect()->route('rsvp.show', $token)
                 ->with('success', 'Payment completed successfully! Your order has been confirmed.');
         } else {
-            $fabricSelection->update(['payment_status' => 'failed']);
+            $paystackTransactionStatus = $response['data']['status'] ?? 'failed';
+
+            // 'abandoned' means the guest closed the payment window — keep order as pending so they can retry
+            $newStatus = ($paystackTransactionStatus === 'abandoned') ? 'pending' : 'failed';
+            $fabricSelection->update(['payment_status' => $newStatus]);
+
+            // Send payment reminder email so the guest can complete their payment
+            if ($fabricSelection->guest->email) {
+                Mail::to($fabricSelection->guest->email)->send(new GuestPaymentReminderMail($fabricSelection));
+            }
 
             return redirect()->route('payment.summary', ['token' => $token, 'order_id' => $order_id])
-                ->with('error', 'Payment verification failed. Please try again.');
+                ->with('error', 'Payment was not completed. Please try again — a reminder has been sent to your email.');
         }
     }
 

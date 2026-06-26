@@ -204,6 +204,53 @@
         </div>
     </div>
 
+    <!-- Account Restriction Modal -->
+    @if ($hasInactiveEvents)
+        <div class="fixed inset-0 z-[60] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
+            <div
+                class="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8 text-center border border-gray-100 dark:border-zinc-800">
+                <div
+                    class="w-20 h-20 mx-auto mb-5 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Restricted</h2>
+
+                <p class="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                    One or more of your events are currently <span class="font-semibold text-red-600">inactive</span>.
+                    Guest Management will be activated once payment is received and confirmed.
+                </p>
+
+                <div
+                    class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 text-left">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-sm text-amber-700 dark:text-amber-300">
+                            Please contact the administrator to lift this restriction and activate your event.
+                        </p>
+                    </div>
+                </div>
+
+                <a href="mailto:info@oncuelogistics.com"
+                    class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl w-full">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Contact Admin
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- Delete Confirmation Modal -->
     <div x-data="{ open: @entangle('confirmingDelete') }" x-show="open" x-transition.opacity.duration.300ms
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"

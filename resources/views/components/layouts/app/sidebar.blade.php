@@ -30,10 +30,10 @@
                     {{ __('Guests') }}
                 </flux:navlist.item>
 
-                <flux:navlist.item icon="truck" :href="route('delivery.services')"
+                {{-- <flux:navlist.item icon="truck" :href="route('delivery.services')"
                     :current="request()->routeIs('delivery.services')" wire:navigate>
                     {{ __('Delivery Services') }}
-                </flux:navlist.item>
+                </flux:navlist.item> --}}
 
                 <flux:navlist.item icon="document-text" :href="route('payment.receipts')"
                     :current="request()->routeIs('payment.receipts')" wire:navigate>

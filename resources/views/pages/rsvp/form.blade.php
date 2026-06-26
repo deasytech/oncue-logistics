@@ -33,7 +33,9 @@
             </div>
         @endif
 
-        @if (session('success') || in_array($rsvp_data->attendance_status, ['confirmed', 'declined']))
+        @if (
+            !($allowEdit ?? false) &&
+                (session('success') || in_array($rsvp_data->attendance_status, ['confirmed', 'declined'])))
             <!-- Submission Summary Page -->
             <div class="mt-8 text-center">
                 <!-- Success Icon -->
@@ -46,7 +48,10 @@
                 <h3 class="text-2xl font-bold text-gray-800 mb-2">Thank You!</h3>
                 <p class="text-gray-600 mb-6">Your response has been recorded successfully.</p>
 
-                @if ($rsvp_data->attendance_status === 'confirmed')
+                @if (
+                    $rsvp_data->attendance_status === 'confirmed' &&
+                        $existingFabricSelection &&
+                        $existingFabricSelection->payment_status === 'paid')
                     <!-- Notification Message -->
                     <div class="bg-pink-50 border border-pink-200 rounded-lg p-6 mb-6 text-left">
                         <div class="flex items-start space-x-3">
@@ -324,6 +329,9 @@
                         <div id="shipping-zone-container" class="mt-4 space-y-3">
                         </div>
 
+                        <p id="delivery-method-error" class="hidden mt-2 text-sm text-red-600">Please select a
+                            delivery method before continuing.</p>
+
                     </div>
                     {{-- <div class="mt-4">
                         <label for="delivery_zone_id" class="block font-semibold text-gray-700 mb-1">Delivery
@@ -356,6 +364,46 @@
                 </button>
             </form>
         @endif
+    </div>
+
+    <!-- Delivery Address Confirmation Modal -->
+    <div id="address-confirm-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4">
+        <div class="absolute inset-0 bg-black/70"></div>
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-pink-100 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800">Confirm Delivery Address</h3>
+            </div>
+
+            <p class="text-sm text-gray-600 mb-4">
+                Please confirm that we should deliver to the address below. If it's incorrect, you can tick the
+                <span class="font-medium text-gray-800">"I want to update my delivery address"</span>
+                checkbox on the form to change it.
+            </p>
+
+            <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                <p id="modal-address-line" class="font-medium text-gray-800 text-sm"></p>
+                <p id="modal-city-state-line" class="text-gray-600 text-sm mt-0.5"></p>
+            </div>
+
+            <div class="flex space-x-3">
+                <button id="modal-update-btn" type="button"
+                    class="flex-1 border border-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition text-sm">
+                    Update Address
+                </button>
+                <button id="modal-confirm-btn" type="button"
+                    class="flex-1 bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded-md transition text-sm">
+                    Yes, This Is Correct
+                </button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -488,7 +536,7 @@
                         type="radio"
                         name="delivery_zone_id"
                         value="${zone.id}"
-                        class="mr-3">
+                        class="mr-3 delivery-zone-radio">
 
                     <span class="font-medium">
                         ${zone.name}
@@ -553,6 +601,16 @@
 
         // Fetch shipping zones on page load
         fetchShippingZones();
+
+        // Clear delivery method error when a zone is selected
+        document.getElementById('shipping-zone-container').addEventListener('change', function(e) {
+            if (e.target.classList.contains('delivery-zone-radio')) {
+                const err = document.getElementById('delivery-method-error');
+                const cat = document.getElementById('shipping-category-container');
+                if (err) err.classList.add('hidden');
+                if (cat) cat.classList.remove('ring-2', 'ring-red-400', 'rounded-lg', 'p-1');
+            }
+        });
 
         // Handle fabric purchase prompt for declined guests
         const attendanceSelect = document.getElementById('attendance_status');
@@ -670,6 +728,91 @@
                 const form = document.querySelector('form');
                 const submitButton = document.getElementById('submit-button');
 
+                // --- Address confirmation modal wiring ---
+                let addressConfirmed = false;
+
+                const addressModal = document.getElementById('address-confirm-modal');
+                const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+                const modalUpdateBtn = document.getElementById('modal-update-btn');
+
+                function showAddressModal() {
+                    // Populate address lines from the live form fields (updated or original)
+                    const updateChecked = document.getElementById('update_address')?.checked;
+                    let addressLine = '{{ $deliveryAddress['address'] }}';
+                    let cityStateLine = '{{ $deliveryAddress['city'] }}, {{ $deliveryAddress['state'] }}';
+
+                    if (updateChecked) {
+                        const updatedAddr = document.getElementById('delivery_address')?.value?.trim();
+                        const cityOption = document.getElementById('delivery_city_id');
+                        const stateOption = document.getElementById('delivery_state_id');
+                        const cityText = cityOption?.options[cityOption.selectedIndex]?.text ?? '';
+                        const stateText = stateOption?.options[stateOption.selectedIndex]?.text ?? '';
+                        if (updatedAddr) addressLine = updatedAddr;
+                        if (cityText && stateText) cityStateLine = `${cityText}, ${stateText}`;
+                    }
+
+                    document.getElementById('modal-address-line').textContent = addressLine;
+                    document.getElementById('modal-city-state-line').textContent = cityStateLine;
+                    addressModal.classList.remove('hidden');
+                }
+
+                function hideAddressModal() {
+                    addressModal.classList.add('hidden');
+                }
+
+                modalConfirmBtn.addEventListener('click', async function() {
+                    hideAddressModal();
+
+                    const updateChecked = document.getElementById('update_address')?.checked;
+                    if (updateChecked) {
+                        const addressInput = document.getElementById('delivery_address');
+                        const latInput = document.getElementById('delivery_latitude');
+                        const lngInput = document.getElementById('delivery_longitude');
+                        const apiKey = '{{ config('services.google.places_api_key', '') }}';
+
+                        // Only geocode when the user typed manually (lat/lng not already set by autocomplete)
+                        if (apiKey && addressInput?.value.trim() && !latInput?.value) {
+                            try {
+                                const geocodeUrl =
+                                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressInput.value.trim())}&key=${apiKey}`;
+                                const res = await fetch(geocodeUrl);
+                                const data = await res.json();
+                                if (data.status === 'OK' && data.results.length > 0) {
+                                    const loc = data.results[0].geometry.location;
+                                    if (latInput) latInput.value = loc.lat;
+                                    if (lngInput) lngInput.value = loc.lng;
+                                    console.log('[Geocode] lat/lng set:', loc.lat, loc.lng);
+                                }
+                            } catch (err) {
+                                console.warn('[Geocode] Failed to geocode address:', err);
+                            }
+                        }
+                    }
+
+                    addressConfirmed = true;
+                    form.requestSubmit();
+                });
+
+                modalUpdateBtn.addEventListener('click', function() {
+                    hideAddressModal();
+                    const updateCheckbox = document.getElementById('update_address');
+                    if (updateCheckbox && !updateCheckbox.checked) {
+                        updateCheckbox.checked = true;
+                        updateCheckbox.dispatchEvent(new Event('change'));
+                    }
+                    document.getElementById('delivery-address-section')
+                        ?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                });
+
+                // Dismiss modal on backdrop click
+                addressModal.addEventListener('click', function(e) {
+                    if (e.target === addressModal) hideAddressModal();
+                });
+                // --- end modal wiring ---
+
                 // Check if already submitted (from session success)
                 @if (session('success'))
                     // Already disabled via Blade, but add extra protection
@@ -729,6 +872,36 @@
                                 radioButtons.forEach(rb => rb.removeAttribute('required'));
                             }
                         }
+                    }
+
+                    // Validate delivery zone selection if delivery address section is visible
+                    const deliveryAddrSection = document.getElementById('delivery-address-section');
+                    const deliveryMethodError = document.getElementById('delivery-method-error');
+                    const shippingCategoryContainer = document.getElementById(
+                    'shipping-category-container');
+                    const isDeliveryVisible = deliveryAddrSection && !deliveryAddrSection.classList
+                        .contains('hidden');
+                    if (isDeliveryVisible) {
+                        const selectedZone = document.querySelector(
+                            'input[name="delivery_zone_id"]:checked');
+                        if (!selectedZone) {
+                            e.preventDefault();
+                            if (deliveryMethodError) deliveryMethodError.classList.remove('hidden');
+                            if (shippingCategoryContainer) shippingCategoryContainer.classList.add('ring-2',
+                                'ring-red-400', 'rounded-lg', 'p-1');
+                            deliveryAddrSection.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center'
+                            });
+                            return;
+                        }
+                    }
+
+                    // Show address confirmation modal if not yet confirmed (only when delivery is visible)
+                    if (isDeliveryVisible && !addressConfirmed) {
+                        e.preventDefault();
+                        showAddressModal();
+                        return;
                     }
 
                     // If we reach here, validation passed - allow form to submit naturally

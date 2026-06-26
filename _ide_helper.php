@@ -26649,6 +26649,17 @@ namespace App\Filament\Resources\FabricTypeResource\Pages {
             }
     }
 
+namespace App\Filament\Resources\GuestOrderResource\Pages {
+    /**
+     */
+    class ListGuestOrders extends \Filament\Resources\Pages\ListRecords {
+            }
+    /**
+     */
+    class ViewGuestOrder extends \Filament\Resources\Pages\ViewRecord {
+            }
+    }
+
 namespace App\Filament\Resources\GuestResource\Pages {
     /**
      */

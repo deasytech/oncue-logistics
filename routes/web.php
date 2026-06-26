@@ -72,6 +72,8 @@ Route::get('/rsvp/states/{state}/cities', [RsvpController::class, 'citiesByState
 Route::get('/payment/preview/{token}', [PaymentController::class, 'preview'])->name('payment.preview');
 Route::post('/payment/confirm/{token}', [PaymentController::class, 'confirmAndProceed'])->name('payment.confirm');
 Route::get('/payment/summary/{token}/{order_id}', [PaymentController::class, 'summary'])->name('payment.summary');
+Route::post('/payment/summary/{token}/{order_id}', [PaymentController::class, 'submitSummary'])->name('payment.summary.submit');
+Route::get('/payment/offline/{token}/{order_id}', [PaymentController::class, 'showOfflineInstructions'])->name('payment.offline');
 Route::post('/payment/paystack/{token}/{order_id}', [PaymentController::class, 'initializePaystack'])->name('payment.paystack');
 Route::get('/payment/paystack/callback/{token}/{order_id}', [PaymentController::class, 'handlePaystackCallback'])->name('payment.paystack.callback');
 // Keep old routes for backup
@@ -87,6 +89,14 @@ Route::get('generate', function () {
 Route::get('optimize', function () {
     Artisan::call('optimize:clear');
     echo 'site optimized';
+});
+
+// Temporary: test payment reminder email — remove before deploying to production
+Route::get('test-payment-reminder/{order_id}', function ($order_id) {
+    $fabricSelection = \App\Models\GuestFabricSelection::with(['guest', 'event'])->findOrFail($order_id);
+    \Illuminate\Support\Facades\Mail::to($fabricSelection->guest->email)
+        ->send(new \App\Mail\GuestPaymentReminderMail($fabricSelection));
+    return 'Payment reminder email sent to ' . $fabricSelection->guest->email;
 });
 
 Route::get('migrate', function () {
@@ -110,10 +120,13 @@ Route::middleware(['auth'])->group(function () {
     Route::view('dashboard', 'dashboard.dashboard')->name('dashboard');
 
     Route::get('guests', GuestList::class)->name('guests.list');
-    Route::get('guests/create', GuestCreate::class)->name('guests.create');
-    Route::get('guests/import', GuestImport::class)->name('guests.import');
-    Route::get('guests/import/template', [GuestImport::class, 'downloadTemplate'])->name('guests.import.template');
-    Route::get('guests/{guest}/edit', GuestEdit::class)->name('guests.edit');
+
+    Route::middleware(['events.active'])->group(function () {
+        Route::get('guests/create', GuestCreate::class)->name('guests.create');
+        Route::get('guests/import', GuestImport::class)->name('guests.import');
+        Route::get('guests/import/template', [GuestImport::class, 'downloadTemplate'])->name('guests.import.template');
+        Route::get('guests/{guest}/edit', GuestEdit::class)->name('guests.edit');
+    });
 
     Route::get('events', EventList::class)->name('events.list');
     Route::get('events/create', EventCreate::class)->name('events.create');

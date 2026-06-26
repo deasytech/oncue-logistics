@@ -60,30 +60,29 @@ class SendRsvpReminders extends Command
             $rsvpLink = route('rsvp.show', $rsvpToken);
             $message = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: " . $rsvpLink;
 
-            // Try WhatsApp template first, fallback to regular WhatsApp
             $whatsappSuccess = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
 
-            // if (!$whatsappSuccess) {
-            //     $whatsappSuccess = $twilio->sendWhatsApp($guest->phone, $message);
-            // }
+            $sent = false;
+            if ($whatsappSuccess) {
+                $sent = true;
+                $this->info("WhatsApp reminder sent to {$guest->phone} for event {$event->name}");
+            } else {
+                // WhatsApp failed, try SMS as fallback
+                $smsSuccess = $twilio->sendSms($guest->phone, $message);
+                if ($smsSuccess) {
+                    $sent = true;
+                    $this->info("WhatsApp failed, SMS fallback sent to {$guest->phone} for event {$event->name}");
+                } else {
+                    $this->error("Failed to send to {$guest->phone} for event {$event->name} via WhatsApp and SMS");
+                }
+            }
 
-            // Send SMS independently - not as a fallback
-            $smsSuccess = $twilio->sendSms($guest->phone, $message);
-
-            $sentCount = 0;
-            if ($whatsappSuccess) $sentCount++;
-            if ($smsSuccess) $sentCount++;
-
-            // Update attempts and last sent timestamp in pivot table if at least one went through
-            if ($sentCount > 0) {
+            // Update attempts and last sent timestamp in pivot table if at least one channel succeeded
+            if ($sent) {
                 $guest->events()->updateExistingPivot($event->id, [
                     'reminder_attempts' => $pivot->reminder_attempts + 1,
                     'last_reminder_sent_at' => now(),
                 ]);
-
-                $this->info("Reminder sent to {$guest->phone} for event {$event->name} (WhatsApp: " . ($whatsappSuccess ? 'yes' : 'no') . ", SMS: " . ($smsSuccess ? 'yes' : 'no') . ")");
-            } else {
-                $this->error("Failed to send to {$guest->phone} for event {$event->name}");
             }
 
             // Throttle: wait 1 second to avoid API rate limits

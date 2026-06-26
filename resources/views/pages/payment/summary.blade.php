@@ -67,67 +67,75 @@
             </div>
         </div>
 
-        <div class="bg-blue-50 p-6 rounded-lg mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Delivery Information</h3>
-
-            <div class="space-y-2 text-sm">
-                <div><strong>Recipient:</strong>
-                    {{ $fabricSelection->guest->full_name ?? trim(($fabricSelection->guest->title ?? '') . ' ' . ($fabricSelection->guest->last_name ?? '')) }}
-                </div>
-                <div><strong>Address:</strong> {{ $fabricSelection->guest->address }}</div>
-                <div><strong>Location:</strong> {{ $fabricSelection->guest->city->name ?? 'N/A' }},
-                    {{ $fabricSelection->guest->state->name ?? 'N/A' }}</div>
-                <div><strong>Email:</strong> {{ $fabricSelection->guest->email }}</div>
-                <div><strong>Phone:</strong> {{ $fabricSelection->guest->phone }}</div>
+        <form id="payment-summary-form" method="POST"
+            action="{{ route('payment.summary.submit', ['token' => $token, 'order_id' => $fabricSelection->id]) }}">
+            @csrf
+            <div class="mb-6">
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address <span
+                        class="text-red-500">*</span></label>
+                <input type="email" id="email" name="email" required
+                    value="{{ $fabricSelection->guest->email ?? '' }}"
+                    class="w-full border border-gray-300 rounded-md px-4 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
+                    placeholder="Enter your email address">
             </div>
-        </div>
 
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Method</h3>
+            <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Delivery Information</h3>
 
-            @if ($fabricSelection->payment_method === 'online')
-                <div class="flex items-center space-x-2 mb-2">
-                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                        <span class="text-green-600 text-xs">✓</span>
+                <div class="space-y-2 text-sm">
+                    <div><strong>Recipient:</strong>
+                        {{ $fabricSelection->guest->full_name ?? trim(($fabricSelection->guest->title ?? '') . ' ' . ($fabricSelection->guest->last_name ?? '')) }}
                     </div>
-                    <span class="font-medium">Online Payment (Paystack)</span>
+                    <div><strong>Address:</strong> {{ $fabricSelection->guest->address }}</div>
+                    <div><strong>Location:</strong> {{ $fabricSelection->guest->city->name ?? 'N/A' }},
+                        {{ $fabricSelection->guest->state->name ?? 'N/A' }}</div>
+                    <div><strong>Email:</strong> {{ $fabricSelection->guest->email }}</div>
+                    <div><strong>Phone:</strong> {{ $fabricSelection->guest->phone }}</div>
                 </div>
-                <p class="text-sm text-gray-600">You will be redirected to Paystack to complete your payment securely.
-                </p>
-            @else
-                <div class="flex items-center space-x-2 mb-2">
-                    <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span class="text-blue-600 text-xs">💳</span>
-                    </div>
-                    <span class="font-medium">Offline Payment</span>
-                </div>
-                <p class="text-sm text-gray-600">You will receive payment instructions and our team will contact you.
-                </p>
-            @endif
-        </div>
+            </div>
 
-        <div class="flex space-x-4">
-            <a href="{{ route('rsvp.show', $token) }}"
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Payment Method</h3>
+
+                @if ($fabricSelection->payment_method === 'online')
+                    <div class="flex items-center space-x-2 mb-2">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                            <span class="text-green-600 text-xs">✓</span>
+                        </div>
+                        <span class="font-medium">Online Payment (Paystack)</span>
+                    </div>
+                    <p class="text-sm text-gray-600">You will be redirected to Paystack to complete your payment
+                        securely.
+                    </p>
+                @else
+                    <div class="flex items-center space-x-2 mb-2">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-blue-600 text-xs">💳</span>
+                        </div>
+                        <span class="font-medium">Offline Payment</span>
+                    </div>
+                    <p class="text-sm text-gray-600">You will receive payment instructions and our team will contact
+                        you.
+                    </p>
+                @endif
+            </div>
+
+        </form>
+
+        <div class="flex space-x-4 mt-6">
+            <a href="{{ route('rsvp.show', $token) }}?edit=1"
                 class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-md text-center transition">
                 ← Back to RSVP
             </a>
 
-            @if ($fabricSelection->payment_method === 'online')
-                <form method="POST"
-                    action="{{ route('payment.paystack', ['token' => $token, 'order_id' => $fabricSelection->id]) }}"
-                    class="flex-1">
-                    @csrf
-                    <button type="submit"
-                        class="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-4 rounded-md transition">
-                        Proceed to Paystack
-                    </button>
-                </form>
-            @else
-                <a href="{{ route('payment.offline', ['token' => $token, 'order_id' => $fabricSelection->id]) }}"
-                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md text-center transition">
+            <button type="submit" form="payment-summary-form"
+                class="flex-1 {{ $fabricSelection->payment_method === 'online' ? 'bg-pink-600 hover:bg-pink-700' : 'bg-blue-600 hover:bg-blue-700' }} text-white font-semibold py-3 px-4 rounded-md transition">
+                @if ($fabricSelection->payment_method === 'online')
+                    Proceed to Paystack
+                @else
                     View Payment Instructions
-                </a>
-            @endif
+                @endif
+            </button>
         </div>
 
         <div class="mt-6 text-center">

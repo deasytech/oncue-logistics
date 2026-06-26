@@ -15,6 +15,7 @@ class GuestEdit extends Component
     public $isEdit = true;
     public $guest;
     public $guestId;
+    public $title;
     public $name, $email, $phone, $rsvp_status, $notes, $customer_id;
     public $selectedEvents = [];
     public $customerEvents = [];
@@ -41,7 +42,8 @@ class GuestEdit extends Component
             ->firstOrFail();
 
         // Populate form fields
-        $this->name = $this->guest->full_name;
+        $this->title = $this->guest->title;
+        $this->name = $this->guest->first_name . ($this->guest->last_name ? ' ' . $this->guest->last_name : '');
         $this->email = $this->guest->email;
         $this->phone = $this->guest->phone;
         $this->rsvp_status = $this->guest->rsvp_status;
@@ -69,9 +71,10 @@ class GuestEdit extends Component
     }
 
     protected $rules = [
+        'title' => 'nullable|string|max:50',
         'name' => 'required|string|max:255',
         'email' => 'nullable|email',
-        'phone' => 'nullable|digits:11',
+        'phone' => ['nullable', 'regex:/^\+?[0-9\s\-\(\)]{7,20}$/'],
         'rsvp_status' => 'nullable|string|in:pending,confirmed,declined',
         'notes' => 'nullable|string',
         'customer_id' => 'required|exists:customers,id',
@@ -99,6 +102,7 @@ class GuestEdit extends Component
 
         // Update guest
         $this->guest->update([
+            'title' => $this->title,
             'first_name' => $nameParts['first_name'],
             'last_name' => $nameParts['last_name'],
             'email' => $this->email,

@@ -305,20 +305,43 @@ class GuestImport extends Component
                 }
               }
 
-              if ($guest->phone && $smsMessage) {
+              if ($guest->phone) {
                 try {
                   $to = app(TwilioService::class)->formatE164($guest->phone);
                   if ($to) {
-                    app(TwilioService::class)->sendSms($to, $smsMessage);
-                    $importResults['sms_sent']++;
-                    Log::info('RSVP SMS sent successfully to guest: ' . $to);
+                    $twilioService = app(TwilioService::class);
+                    $guestName = trim($guest->title . ' ' . $guest->first_name);
+                    $customerName = $guest->customer?->full_name ?? 'our host';
+
+                    $whatsappSuccess = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
+
+                    if ($whatsappSuccess) {
+                      $importResults['sms_sent']++;
+                      Log::info('RSVP WhatsApp sent successfully to guest: ' . $to);
+                    } else {
+                      Log::warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                      if ($smsMessage) {
+                        $smsSuccess = $twilioService->sendSms($to, $smsMessage);
+                        if ($smsSuccess) {
+                          $importResults['sms_sent']++;
+                          Log::info('RSVP SMS fallback sent successfully to guest: ' . $to);
+                        } else {
+                          $importResults['sms_errors'][] = [
+                            'guest' => $guest->full_name,
+                            'phone' => $guest->phone,
+                            'error' => 'Both WhatsApp and SMS failed',
+                          ];
+                          Log::warning('RSVP SMS fallback also failed for guest: ' . $to);
+                        }
+                      }
+                    }
                   } else {
                     $importResults['sms_errors'][] = [
                       'guest' => $guest->full_name,
                       'phone' => $guest->phone,
                       'error' => 'Unable to format phone number to E.164',
                     ];
-                    Log::warning('Skipped RSVP SMS: unable to format phone for guest: ' . $guest->phone);
+                    Log::warning('Skipped RSVP notification: unable to format phone for guest: ' . $guest->phone);
                   }
                 } catch (\Exception $e) {
                   $importResults['sms_errors'][] = [
@@ -326,7 +349,7 @@ class GuestImport extends Component
                     'phone' => $guest->phone,
                     'error' => $e->getMessage()
                   ];
-                  Log::error('Failed to send RSVP SMS to guest: ' . $guest->phone . ' - ' . $e->getMessage());
+                  Log::error('Failed to send RSVP notification to guest: ' . $guest->phone . ' - ' . $e->getMessage());
                 }
               }
             }

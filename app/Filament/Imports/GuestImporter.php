@@ -140,15 +140,13 @@ class GuestImporter extends Importer
                             if ($whatsappSuccess) {
                                 logger()->info('RSVP WhatsApp sent successfully to guest: ' . $to);
                             } else {
-                                logger()->warning('RSVP WhatsApp failed to send to guest: ' . $to);
-                            }
-
-                            // Send SMS independently - not as a fallback
-                            $smsSuccess = $twilioService->sendSms($to, $message);
-                            if ($smsSuccess) {
-                                logger()->info('RSVP SMS sent successfully to guest: ' . $to);
-                            } else {
-                                logger()->warning('RSVP SMS failed to send to guest: ' . $to);
+                                logger()->warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                                $smsSuccess = $twilioService->sendSms($to, $message);
+                                if ($smsSuccess) {
+                                    logger()->info('RSVP SMS fallback sent successfully to guest: ' . $to);
+                                } else {
+                                    logger()->warning('RSVP SMS fallback also failed for guest: ' . $to);
+                                }
                             }
                         } else {
                             logger()->warning('Skipped RSVP notification: unable to format phone for guest: ' . $guest->phone);

@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 
 class RsvpController extends Controller
 {
-    public function show($token)
+    public function show(Request $request, $token)
     {
         // Find the guest-event relationship by RSVP token
         $guestEvent = DB::table('event_guest')
@@ -83,6 +83,7 @@ class RsvpController extends Controller
             'cities' => $cities,
             'selectedStateId' => $selectedStateId,
             'selectedCityId' => $selectedCityId,
+            'allowEdit' => $request->boolean('edit'),
         ]);
     }
 
@@ -143,14 +144,48 @@ class RsvpController extends Controller
         $guest = Guest::findOrFail($guestEvent->guest_id);
         $event = \App\Models\Event::findOrFail($guestEvent->event_id);
 
-        // Update the pivot table with RSVP response
-        DB::table('event_guest')
-            ->where('rsvp_token', $token)
-            ->update([
-                'attendance_status' => $request->input('attendance_status'),
-                'plus_one' => $request->input('plus_one') ?? null,
-                'rsvp_responded_at' => now(),
-            ]);
+        // Handle address update early so it persists regardless of payment redirect
+        if ($request->boolean('update_address')) {
+            $updateData = [
+                'address'  => $request->input('delivery_address'),
+                'city_id'  => $request->input('delivery_city_id'),
+                'state_id' => $request->input('delivery_state_id'),
+            ];
+
+            if ($request->has('delivery_latitude')) {
+                $updateData['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
+            }
+
+            if ($request->has('delivery_longitude')) {
+                $updateData['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
+            }
+
+            $guest->update($updateData);
+        } else {
+            $latLngUpdate = [];
+            if ($request->has('delivery_latitude')) {
+                $latLngUpdate['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
+            }
+            if ($request->has('delivery_longitude')) {
+                $latLngUpdate['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
+            }
+            if (!empty($latLngUpdate)) {
+                $guest->update($latLngUpdate);
+            }
+        }
+
+        // For declined guests, record the response immediately.
+        // For confirmed guests, event_guest is updated only after payment is confirmed
+        // (or immediately if there is nothing to pay).
+        if ($request->input('attendance_status') === 'declined') {
+            DB::table('event_guest')
+                ->where('rsvp_token', $token)
+                ->update([
+                    'attendance_status' => 'declined',
+                    'plus_one' => null,
+                    'rsvp_responded_at' => now(),
+                ]);
+        }
 
         // Handle fabric selection - store in session for confirmed guests until payment
         $fabricSelection = null;
@@ -190,30 +225,60 @@ class RsvpController extends Controller
 
             $totalAmount = $totalFabricCost + $deliveryCost;
 
-            // For confirmed guests, create a pending fabric selection and redirect to payment summary
+            // For confirmed guests, create or update a pending fabric selection and redirect to payment summary
             if ($request->input('attendance_status') === 'confirmed') {
-                $fabricSelection = \App\Models\GuestFabricSelection::create([
-                    'guest_id' => $guest->id,
-                    'event_id' => $event->id,
-                    'fabric_selections' => $fabricSelections,
-                    'total_fabric_cost' => $totalFabricCost,
-                    'delivery_zone_id' => $request->input('delivery_zone_id'),
-                    'delivery_cost' => $deliveryCost,
-                    'total_amount' => $totalAmount,
-                    'payment_method' => $request->input('payment_method', 'online'),
-                    'payment_status' => 'pending',
-                ]);
+                $existingFabricSelection = \App\Models\GuestFabricSelection::where('guest_id', $guest->id)
+                    ->where('event_id', $event->id)
+                    ->first();
 
-                // Send order confirmation email
-                if ($guest->email) {
-                    Mail::to($guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
+                if ($existingFabricSelection) {
+                    $existingFabricSelection->update([
+                        'fabric_selections' => $fabricSelections,
+                        'total_fabric_cost' => $totalFabricCost,
+                        'delivery_zone_id' => $request->input('delivery_zone_id'),
+                        'delivery_cost' => $deliveryCost,
+                        'total_amount' => $totalAmount,
+                        'payment_method' => $request->input('payment_method', 'online'),
+                        'payment_status' => 'pending',
+                    ]);
+                    $fabricSelection = $existingFabricSelection;
+                } else {
+                    $fabricSelection = \App\Models\GuestFabricSelection::create([
+                        'guest_id' => $guest->id,
+                        'event_id' => $event->id,
+                        'fabric_selections' => $fabricSelections,
+                        'total_fabric_cost' => $totalFabricCost,
+                        'delivery_zone_id' => $request->input('delivery_zone_id'),
+                        'delivery_cost' => $deliveryCost,
+                        'total_amount' => $totalAmount,
+                        'payment_method' => $request->input('payment_method', 'online'),
+                        'payment_status' => 'pending',
+                    ]);
+
+                    // Send order confirmation email only for new orders
+                    if ($guest->email) {
+                        Mail::to($guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
+                    }
                 }
 
-                // Redirect to payment summary
-                return redirect()->route('payment.summary', [
-                    'token' => $token,
-                    'order_id' => $fabricSelection->id
-                ])->with('success', 'Please review your order details before proceeding to payment.');
+                if ($totalAmount > 0) {
+                    // There is something to pay — defer event_guest update until payment is confirmed
+                    return redirect()->route('payment.summary', [
+                        'token' => $token,
+                        'order_id' => $fabricSelection->id
+                    ])->with('success', 'Please review your order details before proceeding to payment.');
+                }
+
+                // Zero total (e.g. only invitation card selected) — confirm immediately
+                DB::table('event_guest')
+                    ->where('rsvp_token', $token)
+                    ->update([
+                        'attendance_status' => 'confirmed',
+                        'plus_one' => $request->input('plus_one') ?? null,
+                        'rsvp_responded_at' => now(),
+                    ]);
+                return redirect()->route('rsvp.show', $token)
+                    ->with('success', 'Your response has been recorded. Thank you!');
             }
 
             // For declined guests who want to purchase fabric, save immediately
@@ -304,46 +369,23 @@ class RsvpController extends Controller
             }
         }
 
-        // Handle address update if requested (also persist latitude/longitude if provided)
-        if ($request->boolean('update_address')) {
-            $updateData = [
-                'address' => $request->input('delivery_address'),
-                'city_id' => $request->input('delivery_city_id'),
-                'state_id' => $request->input('delivery_state_id'),
-            ];
-
-            // Only update latitude/longitude when provided (allow empty string to clear)
-            if ($request->has('delivery_latitude')) {
-                $updateData['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
-            }
-
-            if ($request->has('delivery_longitude')) {
-                $updateData['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
-            }
-
-            $guest->update($updateData);
-        } else {
-            // If the user did not request a full address update but latitude/longitude were provided
-            // persist them so geocoding from the address autocomplete isn't lost.
-            $latLngUpdate = [];
-            if ($request->has('delivery_latitude')) {
-                $latLngUpdate['latitude'] = $request->input('delivery_latitude') === '' ? null : $request->input('delivery_latitude');
-            }
-            if ($request->has('delivery_longitude')) {
-                $latLngUpdate['longitude'] = $request->input('delivery_longitude') === '' ? null : $request->input('delivery_longitude');
-            }
-
-            if (!empty($latLngUpdate)) {
-                $guest->update($latLngUpdate);
-            }
-        }
-
-        // Redirect to payment summary if fabric was selected and has a payable amount
+        // Redirect to payment summary for declined guests who selected fabric with a cost
         if ($fabricSelection && $fabricSelection->total_amount > 0) {
             return redirect()->route('payment.summary', [
                 'token' => $token,
                 'order_id' => $fabricSelection->id
             ])->with('success', 'Please review your order details before proceeding to payment.');
+        }
+
+        // Confirmed guests who reach here selected no fabric — confirm their attendance now
+        if ($request->input('attendance_status') === 'confirmed') {
+            DB::table('event_guest')
+                ->where('rsvp_token', $token)
+                ->update([
+                    'attendance_status' => 'confirmed',
+                    'plus_one' => $request->input('plus_one') ?? null,
+                    'rsvp_responded_at' => now(),
+                ]);
         }
 
         return redirect()->route('rsvp.show', $token)->with('success', 'Your response has been recorded. Thank you!');

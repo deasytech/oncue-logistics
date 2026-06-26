@@ -50,7 +50,7 @@
                                             Send guest notifications?
                                         </h3>
                                         <p class="mt-1 text-sm text-amber-800 dark:text-amber-300">
-                                            Do you want to send email and SMS to imported guests after saving them?
+                                            Do you want to send a notification to these guests after saving?
                                         </p>
 
                                         <div class="mt-4 flex flex-wrap gap-3">
@@ -59,8 +59,7 @@
                                                 wire:target="confirmImportWithNotifications"
                                                 class="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
                                                 <span wire:loading.remove
-                                                    wire:target="confirmImportWithNotifications">Yes! Send email and
-                                                    SMS</span>
+                                                    wire:target="confirmImportWithNotifications">Yes! Send</span>
                                                 <span wire:loading wire:target="confirmImportWithNotifications"
                                                     class="inline-flex items-center gap-2">
                                                     <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg"

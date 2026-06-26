@@ -84,27 +84,21 @@ class CreateGuest extends CreateRecord
                             ->body('An RSVP WhatsApp invitation has been sent to ' . $guest->phone)
                             ->send();
                     } else {
-                        Notification::make()
-                            ->warning()
-                            ->title('WhatsApp Failed')
-                            ->body('Failed to send RSVP WhatsApp via template and regular message to ' . $guest->phone)
-                            ->send();
-                    }
-
-                    // Send SMS independently - not as a fallback
-                    $smsSuccess = $twilioService->sendSms($to, $message);
-                    if ($smsSuccess) {
-                        Notification::make()
-                            ->success()
-                            ->title('RSVP SMS Sent')
-                            ->body('An RSVP SMS invitation has been sent to ' . $guest->phone)
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->warning()
-                            ->title('SMS Failed')
-                            ->body('Failed to send RSVP SMS to ' . $guest->phone)
-                            ->send();
+                        // WhatsApp failed, try SMS as fallback
+                        $smsSuccess = $twilioService->sendSms($to, $message);
+                        if ($smsSuccess) {
+                            Notification::make()
+                                ->success()
+                                ->title('RSVP SMS Sent')
+                                ->body('WhatsApp failed. An RSVP SMS invitation has been sent to ' . $guest->phone)
+                                ->send();
+                        } else {
+                            Notification::make()
+                                ->warning()
+                                ->title('Notification Failed')
+                                ->body('Failed to send RSVP via WhatsApp and SMS to ' . $guest->phone)
+                                ->send();
+                        }
                     }
                 }
             } catch (\Exception $e) {

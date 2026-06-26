@@ -47,6 +47,14 @@
                                                 <td align="right" style="padding:6px 0;font-size:14px;color:#2d3748;">
                                                     {{ $invoice->invoice_number }}</td>
                                             </tr>
+                                            @if ($invoice->title)
+                                                <tr>
+                                                    <td style="padding:6px 0;font-size:14px;color:#4a5568;">Title</td>
+                                                    <td align="right"
+                                                        style="padding:6px 0;font-size:14px;color:#2d3748;">
+                                                        {{ $invoice->title }}</td>
+                                                </tr>
+                                            @endif
                                             <tr>
                                                 <td style="padding:6px 0;font-size:14px;color:#4a5568;">Invoice Date
                                                 </td>
@@ -68,9 +76,44 @@
                                                     {{ ucfirst($invoice->status) }}</td>
                                             </tr>
                                         </table>
+                                        @if ($invoice->description)
+                                            <p
+                                                style="margin:12px 0 0;font-size:13px;color:#4a5568;border-top:1px solid #e2e8f0;padding-top:10px;">
+                                                {{ $invoice->description }}
+                                            </p>
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
+
+                            @if ($invoice->customer_phone || $invoice->customer_address)
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                                    style="background:#f7fafc;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;">
+                                    <tr>
+                                        <td style="padding:16px 18px;">
+                                            <h3 style="margin:0 0 12px;font-size:18px;color:#2d3748;">Bill To</h3>
+                                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td style="padding:3px 0;font-size:14px;color:#2d3748;">
+                                                        {{ $invoice->customer_name }}</td>
+                                                </tr>
+                                                @if ($invoice->customer_phone)
+                                                    <tr>
+                                                        <td style="padding:3px 0;font-size:14px;color:#4a5568;">
+                                                            {{ $invoice->customer_phone }}</td>
+                                                    </tr>
+                                                @endif
+                                                @if ($invoice->customer_address)
+                                                    <tr>
+                                                        <td style="padding:3px 0;font-size:14px;color:#4a5568;">
+                                                            {{ $invoice->customer_address }}</td>
+                                                    </tr>
+                                                @endif
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            @endif
 
                             <h3 style="margin:0 0 12px;font-size:18px;color:#2d3748;">Invoice Items</h3>
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -124,7 +167,8 @@
                                 @endif
                                 <tr style="background:#8b0055;color:#ffffff;">
                                     <td colspan="3" align="right"
-                                        style="padding:12px;font-size:14px;font-weight:bold;color:#ffffff;">Total Amount
+                                        style="padding:12px;font-size:14px;font-weight:bold;color:#ffffff;">Total
+                                        Amount
                                     </td>
                                     <td align="right"
                                         style="padding:12px;font-size:14px;font-weight:bold;color:#ffffff;">
@@ -176,6 +220,17 @@
                                 </table>
                             @endif
 
+                            @if ($invoice->footer_notes)
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                                    style="background:#f7fafc;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:20px;">
+                                    <tr>
+                                        <td style="padding:16px 18px;font-size:14px;color:#4a5568;">
+                                            {{ $invoice->footer_notes }}
+                                        </td>
+                                    </tr>
+                                </table>
+                            @endif
+
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                                 style="background:#f7fafc;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:10px;">
                                 <tr>
@@ -183,7 +238,7 @@
                                         <strong>Need Help?</strong><br>
                                         Phone: +234 708 909 1600<br>
                                         Email: info@oncuelogistics.com<br>
-                                        Hours: Monday - Saturday, 9:00 AM - 6:00 PM
+                                        Hours: Monday - Friday, 9:00 AM - 5:00 PM
                                     </td>
                                 </tr>
                             </table>
@@ -207,7 +262,7 @@
                                 <tr>
                                     <td style="color: #718096; font-size: 12px; line-height: 1.8; text-align: center;">
                                         <div>📞 Phone: +234 708 909 1600</div>
-                                        <div>🌐 Website: oncuelogistics.com</div>
+                                        <div>🌐 Website: www.oncuelogistics.com</div>
                                         <div>📸 Instagram: @oncuelogistics</div>
                                     </td>
                                 </tr>

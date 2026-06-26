@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 class GuestCreate extends Component
 {
     public $isEdit = false;
+    public $title;
     public $name, $email, $phone, $notes, $customer_id;
     public $state_id, $city_id;
     public string $address = '';
@@ -58,9 +59,10 @@ class GuestCreate extends Component
     }
 
     protected $rules = [
+        'title' => 'nullable|string|max:50',
         'name' => 'required|string|max:255',
         'email' => 'nullable|email',
-        'phone' => 'nullable|digits:11',
+        'phone' => ['nullable', 'regex:/^\+?[0-9\s\-\(\)]{7,20}$/'],
         'address' => 'required|string|max:500',
         'latitude' => 'nullable|numeric',
         'longitude' => 'nullable|numeric',
@@ -135,6 +137,7 @@ class GuestCreate extends Component
 
         $guest = Guest::create([
             'customer_id' => $this->customer_id,
+            'title' => $this->title,
             'first_name' => $nameParts['first_name'],
             'last_name' => $nameParts['last_name'],
             'email' => $this->email,
@@ -210,15 +213,13 @@ class GuestCreate extends Component
                                 if ($whatsappSuccess) {
                                     logger()->info('RSVP WhatsApp sent successfully to guest: ' . $to);
                                 } else {
-                                    logger()->warning('RSVP WhatsApp failed to send to guest: ' . $to);
-                                }
-
-                                // Send SMS independently - not as a fallback
-                                $smsSuccess = $twilioService->sendSms($to, $message);
-                                if ($smsSuccess) {
-                                    logger()->info('RSVP SMS sent successfully to guest: ' . $to);
-                                } else {
-                                    logger()->warning('RSVP SMS failed to send to guest: ' . $to);
+                                    logger()->warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                                    $smsSuccess = $twilioService->sendSms($to, $message);
+                                    if ($smsSuccess) {
+                                        logger()->info('RSVP SMS fallback sent successfully to guest: ' . $to);
+                                    } else {
+                                        logger()->warning('RSVP SMS fallback also failed for guest: ' . $to);
+                                    }
                                 }
                             } else {
                                 logger()->warning('Skipped RSVP notification: unable to format phone for guest: ' . $guestForEvent->phone);
