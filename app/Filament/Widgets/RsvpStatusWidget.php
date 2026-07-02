@@ -13,7 +13,12 @@ class RsvpStatusWidget extends Widget
 {
   protected static string $view = 'filament.widgets.rsvp-status-widget';
 
-  protected int | string | array $columnSpan = 'full';
+  protected static ?int $sort = 4;
+
+  protected int | string | array $columnSpan = [
+    'default' => 'full',
+    'xl' => 1,
+  ];
 
   public function getRsvpStats(): array
   {

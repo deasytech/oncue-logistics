@@ -2,21 +2,16 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Resources\EventResource\Widgets\EventStats;
-use App\Filament\Resources\ProjectInfoResource\Widgets\projectInfo;
-use App\Filament\Widgets\CustomerAnalyticsWidget;
-use App\Filament\Widgets\RecentActivityWidget;
-use App\Filament\Widgets\RsvpStatusWidget;
-use App\Filament\Widgets\UpcomingEventsWidget;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -24,6 +19,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use TomatoPHP\FilamentSettingsHub\FilamentSettingsHubPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -43,11 +39,25 @@ class AdminPanelProvider extends PanelProvider
                 'success' => Color::Emerald,
                 'warning' => Color::Orange,
             ])
-            ->sidebarWidth('14rem')
             ->font('Poppins')
-            // ->passwordReset()
             ->brandLogo(asset('assets/images/resources/logo.png'))
             ->brandLogoHeight('3rem')
+            ->sidebarWidth('15rem')
+            ->sidebarCollapsibleOnDesktop()
+            ->maxContentWidth(MaxWidth::Full)
+            ->globalSearchKeyBindings(['command+k', 'ctrl+k'])
+            ->globalSearchDebounce('500ms')
+            ->navigationGroups([
+                NavigationGroup::make('Entries')
+                    ->icon('heroicon-o-inbox-stack'),
+                NavigationGroup::make('Products')
+                    ->icon('heroicon-o-gift'),
+                NavigationGroup::make('Payments')
+                    ->icon('heroicon-o-banknotes'),
+                NavigationGroup::make('System')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->collapsed(),
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -73,7 +83,7 @@ class AdminPanelProvider extends PanelProvider
                     ->gridColumns([
                         'default' => 1,
                         'sm' => 2,
-                        'lg' => 3
+                        'lg' => 3,
                     ])
                     ->sectionColumnSpan(1)
                     ->checkboxListColumns([

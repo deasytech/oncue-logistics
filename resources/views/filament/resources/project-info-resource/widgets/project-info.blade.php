@@ -1,21 +1,60 @@
 <x-filament-widgets::widget>
     <x-filament::section>
-        <div class="flex flex-row items-center justify-between gap-4">
-            <div class="font-mono">
-                <h3 class="text-xl font-bold italic">Oncue Logistics</h3>
-                <p class="text-sm opacity-50">v0.01</p>
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            {{-- Brand & Version --}}
+            <div class="flex items-center gap-3">
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-500/10 dark:bg-primary-400/10">
+                    <x-heroicon-o-building-office-2 class="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">Oncue Logistics</span>
+                        <x-filament::badge color="primary" size="sm">v0.01</x-filament::badge>
+                        <x-filament::badge color="success" size="sm">
+                            <x-slot name="icon">heroicon-m-signal</x-slot>
+                            Live
+                        </x-filament::badge>
+                    </div>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        Event logistics & guest management platform
+                    </p>
+                </div>
             </div>
-            <a href="{{ url('admin/users') }}"
-                class="flex items-center gap-2 border border-opacity-50 px-6 py-2 rounded-xl font-semibold">
-                <span class="w-5 h-5 object-contain">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                        stroke="currentColor" class="size-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                    </svg>
-                </span>
-                Users
-            </a>
+
+            {{-- Quick Actions --}}
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ url('/admin/customers') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors">
+                    <x-heroicon-o-user-group class="h-3.5 w-3.5" />
+                    Customers
+                </a>
+                <a href="{{ url('/admin/events') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors">
+                    <x-heroicon-o-calendar-days class="h-3.5 w-3.5" />
+                    Events
+                </a>
+                <a href="{{ url('/admin/guests') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors">
+                    <x-heroicon-o-list-bullet class="h-3.5 w-3.5" />
+                    Guests
+                </a>
+                <a href="{{ url('/admin/invoices') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors">
+                    <x-heroicon-o-document-text class="h-3.5 w-3.5" />
+                    Invoices
+                </a>
+                <a href="{{ url('/admin/events/create') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 transition-colors shadow-sm">
+                    <x-heroicon-o-plus class="h-3.5 w-3.5" />
+                    New Event
+                </a>
+                <a href="{{ url('/admin/users') }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors">
+                    <x-heroicon-o-users class="h-3.5 w-3.5" />
+                    Users
+                </a>
+            </div>
         </div>
     </x-filament::section>
 </x-filament-widgets::widget>

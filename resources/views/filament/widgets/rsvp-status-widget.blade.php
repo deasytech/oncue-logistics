@@ -1,143 +1,167 @@
 <x-filament-widgets::widget>
-    <x-filament::section>
-        <div class="space-y-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">RSVP Status Overview</h2>
+    <x-filament::section icon="heroicon-o-chat-bubble-left-right" icon-color="warning" collapsible>
+        <x-slot name="heading">RSVP Status</x-slot>
+        <x-slot name="description">Guest response tracking across all events</x-slot>
+        <x-slot name="headerEnd">
+            <x-filament::badge
+                color="{{ $rsvpStats['response_rate'] >= 75 ? 'success' : ($rsvpStats['response_rate'] >= 40 ? 'warning' : 'danger') }}"
+                size="sm">
+                {{ $rsvpStats['response_rate'] }}% responded
+            </x-filament::badge>
+        </x-slot>
 
-            {{-- RSVP Statistics --}}
-            <div class="flex flex-col md:flex-row gap-4">
-                <div
-                    class="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-blue-600 dark:text-blue-400">Total Guests</p>
-                            <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                                {{ $rsvpStats['total_guests'] }}</p>
-                        </div>
-                        <x-heroicon-o-users class="w-8 h-8 text-blue-500" />
-                    </div>
+        {{-- Stat cards --}}
+        <div class="grid grid-cols-2 gap-3 mb-5">
+            <div
+                class="rounded-xl p-4 bg-blue-50 dark:bg-blue-950/30 ring-1 ring-inset ring-blue-200/50 dark:ring-blue-800/30">
+                <div class="flex items-center gap-2 mb-1">
+                    <x-heroicon-o-users class="h-3.5 w-3.5 text-blue-500" />
+                    <p class="text-xs font-medium text-blue-700 dark:text-blue-400 uppercase tracking-wide">Total
+                        Guests</p>
                 </div>
-
-                <div
-                    class="w-full p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-green-600 dark:text-green-400">Responded</p>
-                            <p class="text-2xl font-bold text-green-900 dark:text-green-100">
-                                {{ $rsvpStats['responded'] }}</p>
-                        </div>
-                        <x-heroicon-o-check-circle class="w-8 h-8 text-green-500" />
-                    </div>
-                </div>
-
-                <div
-                    class="w-full p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-yellow-600 dark:text-yellow-400">Pending</p>
-                            <p class="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                                {{ $rsvpStats['pending'] }}</p>
-                        </div>
-                        <x-heroicon-o-clock class="w-8 h-8 text-yellow-500" />
-                    </div>
-                </div>
-
-                <div
-                    class="w-full p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-purple-600 dark:text-purple-400">Response Rate</p>
-                            <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                                {{ $rsvpStats['response_rate'] }}%</p>
-                        </div>
-                        <x-heroicon-o-chart-bar class="w-8 h-8 text-purple-500" />
-                    </div>
-                </div>
+                <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {{ number_format($rsvpStats['total_guests']) }}
+                </p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {{-- Recent RSVP Responses --}}
-                <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <x-heroicon-o-bell class="w-4 h-4" />
-                        Recent Responses
-                    </h3>
-                    <div class="space-y-2">
-                        @forelse($recentResponses as $response)
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $response->first_name }} {{ $response->last_name }}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $response->event_name }}
-                                        </p>
-                                    </div>
-                                    <span
-                                        class="px-2 py-1 text-xs rounded-full 
-                                        @if ($response->attendance_status === 'attending') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                        @elseif($response->attendance_status === 'not_attending') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                        @else bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200 @endif">
-                                        {{ ucfirst(str_replace('_', ' ', $response->attendance_status)) }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between text-xs text-gray-400">
-                                    <span>{{ $response->customer_first_name }}
-                                        {{ $response->customer_last_name }}</span>
-                                    <span>{{ \Carbon\Carbon::parse($response->rsvp_responded_at)->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No recent RSVP responses</p>
-                        @endforelse
-                    </div>
+            <div
+                class="rounded-xl p-4 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-inset ring-emerald-200/50 dark:ring-emerald-800/30">
+                <div class="flex items-center gap-2 mb-1">
+                    <x-heroicon-o-check-badge class="h-3.5 w-3.5 text-emerald-500" />
+                    <p class="text-xs font-medium text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                        Responded</p>
                 </div>
+                <p class="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+                    {{ number_format($rsvpStats['responded']) }}
+                </p>
+            </div>
 
-                {{-- Upcoming Events with RSVP Status --}}
-                <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <x-heroicon-o-calendar class="w-4 h-4" />
-                        Upcoming Events RSVP
-                    </h3>
-                    <div class="space-y-2">
-                        @forelse($upcomingEvents as $event)
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $event->name }}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $event->customer->full_name }} •
-                                            {{ \Carbon\Carbon::parse($event->event_date)->format('M d, Y') }}
-                                        </p>
-                                    </div>
-                                    <span class="text-xs text-gray-400">
-                                        {{ \Carbon\Carbon::parse($event->event_date)->diffForHumans() }}
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-4 text-xs">
-                                        <span class="text-gray-600 dark:text-gray-400">
-                                            Total: {{ $event->total_guests }}
-                                        </span>
-                                        <span class="text-green-600 dark:text-green-400">
-                                            Responded: {{ $event->responded_guests }}
-                                        </span>
-                                    </div>
-                                    <div class="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div class="bg-green-600 h-2 rounded-full"
-                                            style="width: {{ $event->total_guests > 0 ? ($event->responded_guests / $event->total_guests) * 100 : 0 }}%">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No upcoming events with guests</p>
-                        @endforelse
-                    </div>
+            <div
+                class="rounded-xl p-4 bg-amber-50 dark:bg-amber-950/30 ring-1 ring-inset ring-amber-200/50 dark:ring-amber-800/30">
+                <div class="flex items-center gap-2 mb-1">
+                    <x-heroicon-o-clock class="h-3.5 w-3.5 text-amber-500" />
+                    <p class="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">Pending
+                    </p>
+                </div>
+                <p class="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                    {{ number_format($rsvpStats['pending']) }}
+                </p>
+            </div>
+
+            <div
+                class="rounded-xl p-4 bg-purple-50 dark:bg-purple-950/30 ring-1 ring-inset ring-purple-200/50 dark:ring-purple-800/30">
+                <div class="flex items-center gap-2 mb-1">
+                    <x-heroicon-o-chart-pie class="h-3.5 w-3.5 text-purple-500" />
+                    <p class="text-xs font-medium text-purple-700 dark:text-purple-400 uppercase tracking-wide">
+                        Response Rate</p>
+                </div>
+                <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {{ $rsvpStats['response_rate'] }}%
+                </p>
+            </div>
+        </div>
+
+        {{-- Response rate progress bar --}}
+        <div class="mb-5">
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+                    Responded ({{ $rsvpStats['responded'] }})
+                </span>
+                <span class="flex items-center gap-1">
+                    <span class="inline-block h-2 w-2 rounded-full bg-amber-400"></span>
+                    Pending ({{ $rsvpStats['pending'] }})
+                </span>
+            </div>
+            <div class="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2.5 overflow-hidden">
+                <div class="h-2.5 rounded-full transition-all duration-700
+                    {{ $rsvpStats['response_rate'] >= 75 ? 'bg-emerald-500' : ($rsvpStats['response_rate'] >= 40 ? 'bg-amber-400' : 'bg-red-500') }}"
+                    style="width: {{ $rsvpStats['response_rate'] }}%">
                 </div>
             </div>
         </div>
+
+        {{-- Recent RSVP responses --}}
+        <div class="mb-5">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                <x-heroicon-o-bell class="w-4 h-4 text-gray-400" />
+                Recent Responses
+            </h3>
+            <div class="space-y-1.5">
+                @forelse ($recentResponses as $response)
+                    <div
+                        class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {{ $response->first_name }} {{ $response->last_name }}
+                            </p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ $response->event_name }}
+                            </p>
+                        </div>
+                        <x-filament::badge
+                            color="{{ $response->attendance_status === 'attending' ? 'success' : ($response->attendance_status === 'not_attending' ? 'danger' : 'gray') }}"
+                            size="sm" class="ml-3 shrink-0">
+                            {{ ucfirst(str_replace('_', ' ', $response->attendance_status)) }}
+                        </x-filament::badge>
+                    </div>
+                @empty
+                    <div class="py-6 text-center">
+                        <x-heroicon-o-chat-bubble-left-ellipsis
+                            class="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600 mb-2" />
+                        <p class="text-sm text-gray-400 dark:text-gray-500">No RSVP responses yet</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Upcoming events RSVP --}}
+        @if ($upcomingEvents->isNotEmpty())
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                    <x-heroicon-o-calendar class="w-4 h-4 text-gray-400" />
+                    Events Awaiting Responses
+                </h3>
+                <div class="space-y-2">
+                    @foreach ($upcomingEvents as $event)
+                        <div class="px-3 py-3 rounded-lg bg-gray-50 dark:bg-white/5">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    {{ $event->name }}
+                                </p>
+                                <div class="ml-2 flex items-center gap-1.5 shrink-0">
+                                    <x-filament::badge color="gray" size="sm">
+                                        {{ \Carbon\Carbon::parse($event->event_date)->format('M d') }}
+                                    </x-filament::badge>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                                        style="width: {{ $event->total_guests > 0 ? ($event->responded_guests / $event->total_guests) * 100 : 0 }}%">
+                                    </div>
+                                </div>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                                    {{ $event->responded_guests }}/{{ $event->total_guests }}
+                                    <span class="text-gray-400 dark:text-gray-500">responded</span>
+                                </span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        <x-slot name="footer">
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ $rsvpStats['pending'] }} guests still pending
+                </p>
+                <a href="{{ url('/admin/guests') }}"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+                    Manage guests
+                    <x-heroicon-m-arrow-right class="h-3.5 w-3.5" />
+                </a>
+            </div>
+        </x-slot>
     </x-filament::section>
 </x-filament-widgets::widget>

@@ -296,6 +296,7 @@ class GuestOrderResource extends Resource
             ->filters([
                 SelectFilter::make('event_id')
                     ->label('Event')
+                    ->attribute('event_guest.event_id')
                     ->options(fn(): array => Event::orderBy('name')->pluck('name', 'id')->all())
                     ->searchable(),
 

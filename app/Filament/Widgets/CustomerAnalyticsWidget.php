@@ -3,15 +3,15 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Customer;
-use App\Models\Event;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 class CustomerAnalyticsWidget extends Widget
 {
   protected static string $view = 'filament.widgets.customer-analytics-widget';
+
+  protected static ?int $sort = 3;
 
   protected int | string | array $columnSpan = 'full';
 

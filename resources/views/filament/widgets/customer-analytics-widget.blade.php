@@ -1,188 +1,108 @@
 <x-filament-widgets::widget>
-    <x-filament::section>
-        <div class="space-y-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Customer Analytics</h2>
+    <x-filament::section icon="heroicon-o-user-group" icon-color="info" collapsible>
+        <x-slot name="heading">Customer Analytics</x-slot>
+        <x-slot name="description">Overview of customer growth and engagement</x-slot>
+        <x-slot name="headerEnd">
+            <x-filament::badge color="gray" size="sm">
+                {{ number_format($customerStats['total']) }} total
+            </x-filament::badge>
+        </x-slot>
 
-            {{-- Customer Statistics --}}
-            <div class="flex flex-col md:flex-row gap-4">
-                <div
-                    class="w-full p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all duration-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Total Customers</p>
-                            <p class="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                                {{ number_format($customerStats['total']) }}
-                            </p>
-                            <div class="mt-2 text-xs text-blue-600 dark:text-blue-400">
-                                Active customers
-                            </div>
-                        </div>
-                        <div class="p-3 bg-blue-200 dark:bg-blue-800 rounded-full">
-                            <x-heroicon-o-user-group class="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                    </div>
-                </div>
+        {{-- 4-column main content grid --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
-                <div
-                    class="w-full p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-700 hover:shadow-lg transition-all duration-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Active Customers</p>
-                            <p class="text-3xl font-bold text-green-900 dark:text-green-100">
-                                {{ number_format($customerStats['active']) }}
-                            </p>
-                            <div class="mt-2 text-xs text-green-600 dark:text-green-400">
-                                {{ $customerStats['active_percentage'] }}% of total
-                            </div>
-                        </div>
-                        <div class="p-3 bg-green-200 dark:bg-green-800 rounded-full">
-                            <x-heroicon-o-check-circle class="w-6 h-6 text-green-600 dark:text-green-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    class="w-full p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-700 hover:shadow-lg transition-all duration-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">New This Month</p>
-                            <p class="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                                {{ number_format($customerStats['new_this_month']) }}
-                            </p>
-                            <div class="mt-2 text-xs">
-                                @if ($customerStats['growth_rate'] > 0)
-                                    <span class="text-green-600 dark:text-green-400">↑
-                                        +{{ $customerStats['growth_rate'] }}%</span>
-                                @elseif($customerStats['growth_rate'] < 0)
-                                    <span class="text-red-600 dark:text-red-400">↓
-                                        {{ $customerStats['growth_rate'] }}%</span>
-                                @else
-                                    <span class="text-gray-600 dark:text-gray-400">→ 0%</span>
-                                @endif
-                                <span class="text-purple-600 dark:text-purple-400"> vs last month</span>
-                            </div>
-                        </div>
-                        <div class="p-3 bg-purple-200 dark:bg-purple-800 rounded-full">
-                            <x-heroicon-o-plus-circle class="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    class="w-full p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-700 hover:shadow-lg transition-all duration-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Avg Events/Customer
-                            </p>
-                            <p class="text-3xl font-bold text-orange-900 dark:text-orange-100">
-                                {{ $customerStats['total'] > 0 ? number_format(\App\Models\Event::count() / $customerStats['total'], 1) : '0.0' }}
-                            </p>
-                            <div class="mt-2 text-xs text-orange-600 dark:text-orange-400">
-                                {{ \App\Models\Event::count() }} total events
-                            </div>
-                        </div>
-                        <div class="p-3 bg-orange-200 dark:bg-orange-800 rounded-full">
-                            <x-heroicon-o-calendar class="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex flex-col lg:flex-row lg:gap-6 gap-6">
-                {{-- Customer Growth Chart --}}
-                <div class="flex-1 space-y-3">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <x-heroicon-o-chart-bar class="w-4 h-4" />
-                        Customer Growth (Last 6 Months)
-                    </h3>
-                    <div class="space-y-2">
-                        @foreach ($growthData as $data)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <span
-                                    class="text-sm font-medium text-gray-900 dark:text-white">{{ $data['month'] }}</span>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">
-                                        {{ $data['count'] }} new
-                                    </span>
-                                    <div class="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div class="bg-blue-600 h-2 rounded-full"
-                                            style="width: {{ max($growthData)['count'] > 0 ? ($data['count'] / max($growthData)['count']) * 100 : 0 }}%">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                {{-- Top Customers by Events --}}
-                <div class="flex-1 space-y-3">
-                    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <x-heroicon-o-star class="w-4 h-4" />
-                        Top Customers by Events
-                    </h3>
-                    <div class="space-y-2">
-                        @forelse($topCustomers as $customer)
-                            <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                <div class="flex items-center justify-between mb-1">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                            {{ $customer->title }} {{ $customer->first_name }}
-                                            {{ $customer->last_name }}
-                                        </p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $customer->email }}
-                                        </p>
-                                    </div>
-                                    <span
-                                        class="px-2 py-1 text-xs bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200 rounded-full">
-                                        {{ $customer->events_count }} events
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between text-xs text-gray-400">
-                                    <span>{{ $customer->phone }}</span>
-                                    <span>{{ $customer->created_at->diffForHumans() }}</span>
-                                </div>
-                            </div>
-                        @empty
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No customers with events yet</p>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-
-            {{-- Recent Active Customers --}}
-            <div class="space-y-3">
-                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    <x-heroicon-o-bolt class="w-4 h-4" />
-                    Recently Active Customers
+            {{-- Col 1: Growth chart --}}
+            <div class="sm:col-span-1">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                    <x-heroicon-o-chart-bar class="w-4 h-4 text-gray-400" />
+                    Growth (6 Months)
                 </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    @forelse($recentActiveCustomers as $customer)
-                        <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                            <div class="flex items-center justify-between mb-2">
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                        {{ $customer->title }} {{ $customer->first_name }} {{ $customer->last_name }}
-                                    </p>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        {{ $customer->events->count() }} events
-                                    </p>
+                <div class="space-y-2">
+                    @php $maxCount = collect($growthData)->max('count') ?: 1; @endphp
+                    @foreach ($growthData as $data)
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 w-14 shrink-0">
+                                {{ $data['month'] }}
+                            </span>
+                            <div class="flex-1 bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                <div class="bg-blue-500 dark:bg-blue-400 h-2 rounded-full transition-all duration-500"
+                                    style="width: {{ $maxCount > 0 ? ($data['count'] / $maxCount) * 100 : 0 }}%">
                                 </div>
-                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                             </div>
-                            <div class="flex items-center justify-between text-xs text-gray-400">
-                                <span>{{ $customer->email }}</span>
-                                <span>{{ $customer->created_at->diffForHumans() }}</span>
-                            </div>
+                            <span
+                                class="text-xs font-semibold text-gray-700 dark:text-gray-300 w-5 text-right shrink-0">
+                                {{ $data['count'] }}
+                            </span>
                         </div>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Col 2: Top customers by events --}}
+            <div class="sm:col-span-1">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                    <x-heroicon-o-star class="w-4 h-4 text-gray-400" />
+                    Top by Events
+                </h3>
+                <div class="space-y-1.5">
+                    @forelse ($topCustomers as $customer)
+                        <a href="{{ url('/admin/customers/' . $customer->id) }}"
+                            class="flex items-center justify-between px-2.5 py-2 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
+                            <p
+                                class="text-xs font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                {{ $customer->first_name }} {{ $customer->last_name }}
+                            </p>
+                            <x-filament::badge color="primary" size="sm" class="ml-2 shrink-0">
+                                {{ $customer->events_count }}
+                            </x-filament::badge>
+                        </a>
                     @empty
-                        <div class="col-span-full text-center py-4">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">No active customers found</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 py-4 text-center">No data yet</p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Col 3 & 4: Recently active customers (spans 2 cols) --}}
+            <div class="sm:col-span-2">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-1.5">
+                    <x-heroicon-o-bolt class="w-4 h-4 text-gray-400" />
+                    Recently Active
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    @forelse ($recentActiveCustomers as $customer)
+                        <a href="{{ url('/admin/customers/' . $customer->id) }}"
+                            class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
+                            <div class="min-w-0">
+                                <p
+                                    class="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                    {{ $customer->title }} {{ $customer->first_name }} {{ $customer->last_name }}
+                                </p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ $customer->email }}</p>
+                            </div>
+                            <span
+                                class="ml-2 shrink-0 inline-flex h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20"></span>
+                        </a>
+                    @empty
+                        <div class="col-span-full py-4 text-center text-sm text-gray-400 dark:text-gray-500">
+                            No active customers found
                         </div>
                     @endforelse
                 </div>
             </div>
+
         </div>
+
+        <x-slot name="footer">
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    {{ $customerStats['active'] }} active of {{ $customerStats['total'] }} total customers
+                </p>
+                <a href="{{ url('/admin/customers') }}"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
+                    View all customers
+                    <x-heroicon-m-arrow-right class="h-3.5 w-3.5" />
+                </a>
+            </div>
+        </x-slot>
     </x-filament::section>
 </x-filament-widgets::widget>

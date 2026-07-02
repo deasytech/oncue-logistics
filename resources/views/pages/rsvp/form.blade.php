@@ -115,7 +115,11 @@
                                     class="font-medium text-gray-800 capitalize">{{ str_replace('_', ' ', $existingFabricSelection->payment_method) }}</span>
                             </div>
                         @endif
-                        @if ($rsvp_data->attendance_status === 'confirmed')
+                        @if (
+                            $rsvp_data->attendance_status === 'confirmed' &&
+                                $existingFabricSelection &&
+                                $existingFabricSelection->fabricSelections &&
+                                $existingFabricSelection->fabricSelections->count() > 0)
                             <div class="pt-2 border-t">
                                 <span class="text-gray-600 block mb-1">Delivery Address:</span>
                                 <span class="font-medium text-gray-800 text-sm">{{ $deliveryAddress['address'] }}</span>
@@ -249,6 +253,7 @@
                 @endif
 
                 <!-- Delivery Address Section -->
+                @if ($fabricTypes->count() > 0)
                 <div id="delivery-address-section" class="border-t pt-6 mt-6">
                     <h4 class="text-lg font-semibold text-gray-800 mb-4">Delivery Address</h4>
                     <div class="bg-gray-50 p-4 rounded-lg mb-4">
@@ -344,6 +349,7 @@
                         <p class="mt-1 text-xs text-gray-500">Select your preferred delivery zone.</p>
                     </div> --}}
                 </div>
+                @endif
 
                 <!-- Delivery Zone functionality moved to Package Customizer -->
                 <!-- Delivery zones are now handled in the package customizer page -->
@@ -874,14 +880,17 @@
                         }
                     }
 
-                    // Validate delivery zone selection if delivery address section is visible
+                    // Validate delivery zone selection if delivery address section is visible and fabrics are selected
                     const deliveryAddrSection = document.getElementById('delivery-address-section');
                     const deliveryMethodError = document.getElementById('delivery-method-error');
                     const shippingCategoryContainer = document.getElementById(
                     'shipping-category-container');
                     const isDeliveryVisible = deliveryAddrSection && !deliveryAddrSection.classList
                         .contains('hidden');
-                    if (isDeliveryVisible) {
+                    const selectedFabrics = document.querySelectorAll('input[name="fabric_types[]"]:checked');
+                    const hasFabricSelections = selectedFabrics.length > 0;
+
+                    if (isDeliveryVisible && hasFabricSelections) {
                         const selectedZone = document.querySelector(
                             'input[name="delivery_zone_id"]:checked');
                         if (!selectedZone) {
@@ -897,8 +906,8 @@
                         }
                     }
 
-                    // Show address confirmation modal if not yet confirmed (only when delivery is visible)
-                    if (isDeliveryVisible && !addressConfirmed) {
+                    // Show address confirmation modal only when delivery is visible and fabrics are selected
+                    if (isDeliveryVisible && hasFabricSelections && !addressConfirmed) {
                         e.preventDefault();
                         showAddressModal();
                         return;

@@ -11,7 +11,12 @@ class UpcomingEventsWidget extends Widget
 {
   protected static string $view = 'filament.widgets.upcoming-events-widget';
 
-  protected int | string | array $columnSpan = 'full';
+  protected static ?int $sort = 5;
+
+  protected int | string | array $columnSpan = [
+    'default' => 'full',
+    'xl' => 1,
+  ];
 
   public function getUpcomingEvents(): Collection
   {

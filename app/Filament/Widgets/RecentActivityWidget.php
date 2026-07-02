@@ -12,6 +12,8 @@ class RecentActivityWidget extends Widget
 {
   protected static string $view = 'filament.widgets.recent-activity-widget';
 
+  protected static ?int $sort = 6;
+
   protected int | string | array $columnSpan = 'full';
 
   public function getRecentCustomers(): Collection

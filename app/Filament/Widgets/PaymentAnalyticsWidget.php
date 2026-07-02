@@ -2,20 +2,22 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Event;
 use App\Models\GuestFabricSelection;
 use App\Models\PackagePayment;
+use Carbon\Carbon;
 use Filament\Widgets\Widget;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class PaymentAnalyticsWidget extends Widget
 {
   protected static string $view = 'filament.widgets.payment-analytics-widget';
 
-  protected int | string | array $columnSpan = 'full';
+  protected static ?int $sort = 6;
 
-  protected static ?int $sort = 2;
+  protected int | string | array $columnSpan = [
+    'default' => 'full',
+    'lg' => 1,
+  ];
 
   public function getPaymentStats(): array
   {
@@ -26,88 +28,69 @@ class PaymentAnalyticsWidget extends Widget
     $customerPaymentsCount = PackagePayment::where('status', 'success')->count();
     $guestFabricPaymentsCount = GuestFabricSelection::where('payment_status', 'paid')->count();
 
+    $revenueThisMonth = PackagePayment::where('status', 'success')
+      ->whereMonth('created_at', Carbon::now()->month)
+      ->whereYear('created_at', Carbon::now()->year)
+      ->sum('amount')
+      + GuestFabricSelection::where('payment_status', 'paid')
+      ->whereMonth('created_at', Carbon::now()->month)
+      ->whereYear('created_at', Carbon::now()->year)
+      ->sum('total_amount');
+
     return [
       'total_revenue' => $totalRevenue,
       'total_customer_payments' => $totalCustomerPayments,
       'total_guest_fabric_payments' => $totalGuestFabricPayments,
       'customer_payments_count' => $customerPaymentsCount,
       'guest_fabric_payments_count' => $guestFabricPaymentsCount,
+      'revenue_this_month' => $revenueThisMonth,
+      'total_transactions' => $customerPaymentsCount + $guestFabricPaymentsCount,
     ];
   }
 
-  public function getPaymentsByEvent($eventId = null): Collection
+  public function getRecentPayments(int $limit = 10): Collection
   {
-    $query = Event::with(['customer'])
-      ->withSum(['guestFabricSelections' => function ($query) {
-        $query->where('payment_status', 'paid');
-      }], 'total_amount');
-
-    if ($eventId) {
-      $query->where('id', $eventId);
-    }
-
-    return $query->get();
-  }
-
-  public function getRecentPayments($limit = 10): Collection
-  {
-    $customerPayments = PackagePayment::with(['customer'])
+    $customerPayments = PackagePayment::with(['customer.events'])
       ->where('status', 'success')
-      ->select([
-        'package_payments.id',
-        'package_payments.customer_id',
-        'package_payments.reference',
-        'package_payments.amount',
-        'package_payments.status',
-        'package_payments.created_at',
-        'package_payments.updated_at',
-        DB::raw("'customer' as payment_type"),
-        DB::raw("NULL as event_id"),
-        DB::raw("NULL as guest_id"),
-        DB::raw("NULL as total_amount"),
-        DB::raw("NULL as payment_status")
-      ])
-      ->latest();
-
-    $guestFabricPayments = GuestFabricSelection::with(['guest', 'event'])
-      ->where('payment_status', 'paid')
-      ->select([
-        'guest_fabric_selections.id',
-        DB::raw("NULL as customer_id"),
-        DB::raw("NULL as reference"),
-        'guest_fabric_selections.total_amount as amount',
-        DB::raw("'paid' as status"),
-        'guest_fabric_selections.created_at',
-        'guest_fabric_selections.updated_at',
-        DB::raw("'guest_fabric' as payment_type"),
-        'guest_fabric_selections.event_id',
-        'guest_fabric_selections.guest_id',
-        'guest_fabric_selections.total_amount',
-        'guest_fabric_selections.payment_status'
-      ])
-      ->latest();
-
-    return $customerPayments->union($guestFabricPayments)
-      ->orderBy('created_at', 'desc')
+      ->latest()
       ->limit($limit)
-      ->get();
-  }
+      ->get()
+      ->map(fn($p) => (object) [
+        'payment_type' => 'customer',
+        'name'         => $p->customer
+          ? trim($p->customer->title . ' ' . $p->customer->first_name . ' ' . $p->customer->last_name)
+          : '—',
+        'event'        => $p->customer?->events->first()?->name ?? '—',
+        'amount'       => $p->amount,
+        'created_at'   => $p->created_at,
+      ]);
 
-  public function getEventsForFilter(): Collection
-  {
-    return Event::select('id', 'name')
-      ->whereHas('guestFabricSelections', function ($query) {
-        $query->where('payment_status', 'paid');
-      })
-      ->orderBy('name')
-      ->get();
+    $fabricPayments = GuestFabricSelection::with(['guest', 'event'])
+      ->where('payment_status', 'paid')
+      ->latest()
+      ->limit($limit)
+      ->get()
+      ->map(fn($p) => (object) [
+        'payment_type' => 'guest_fabric',
+        'name'         => $p->guest
+          ? trim($p->guest->first_name . ' ' . $p->guest->last_name)
+          : '—',
+        'event'        => $p->event?->name ?? '—',
+        'amount'       => $p->total_amount,
+        'created_at'   => $p->created_at,
+      ]);
+
+    return $customerPayments
+      ->concat($fabricPayments)
+      ->sortByDesc('created_at')
+      ->take($limit)
+      ->values();
   }
 
   public function getViewData(): array
   {
     return [
-      'paymentStats' => $this->getPaymentStats(),
-      'eventsForFilter' => $this->getEventsForFilter(),
+      'paymentStats'   => $this->getPaymentStats(),
       'recentPayments' => $this->getRecentPayments(),
     ];
   }

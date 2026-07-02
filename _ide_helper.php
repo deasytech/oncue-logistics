@@ -26543,6 +26543,10 @@ namespace Filament\Pages {
     class BasePage extends \Livewire\Component {
             }
     /**
+     */
+    class Dashboard extends \Filament\Pages\Page {
+            }
+    /**
      * @property ComponentContainer $form
      */
     class SettingsPage extends \Filament\Pages\Page {
@@ -26851,7 +26855,7 @@ namespace App\Filament\Resources\UserResource\Pages {
 namespace App\Filament\Pages {
     /**
      */
-    class Dashboard extends \Filament\Pages\Page {
+    class Dashboard extends \Filament\Pages\Dashboard {
             }
     }
 
@@ -26862,7 +26866,19 @@ namespace App\Filament\Widgets {
             }
     /**
      */
+    class CustomerStatsWidget extends \Filament\Widgets\StatsOverviewWidget {
+            }
+    /**
+     */
+    class FabricRevenueWidget extends \Filament\Widgets\Widget {
+            }
+    /**
+     */
     class PaymentAnalyticsWidget extends \Filament\Widgets\Widget {
+            }
+    /**
+     */
+    class PaymentStatsWidget extends \Filament\Widgets\StatsOverviewWidget {
             }
     /**
      */
@@ -32456,11 +32472,6 @@ namespace  {
 }
 
 
-namespace Facades\Livewire\Features\SupportFileUploads {
-    /**
-     * @mixin \Livewire\Features\SupportFileUploads\GenerateSignedUploadUrl     */
-    class GenerateSignedUploadUrl extends \Livewire\Features\SupportFileUploads\GenerateSignedUploadUrl {}
-}
 
 
 
