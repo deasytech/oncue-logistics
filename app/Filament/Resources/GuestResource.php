@@ -393,6 +393,7 @@ class GuestResource extends Resource
             'index' => Pages\ListGuests::route('/'),
             'create' => Pages\CreateGuest::route('/create'),
             'edit' => Pages\EditGuest::route('/{record}/edit'),
+            'view' => Pages\ViewGuest::route('/{record}/view'),
         ];
     }
 }

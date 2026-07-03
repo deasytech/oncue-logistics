@@ -15,10 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'events.active' => \App\Http\Middleware\EnsureEventsActive::class,
         ]);
 
-        // Paystack posts webhook events without a Laravel CSRF token; authenticity is
-        // instead verified via the x-paystack-signature header in the controller.
+        // Paystack and Twilio post webhook events without a Laravel CSRF token; authenticity is
+        // instead verified via signature headers in the respective controllers.
         $middleware->validateCsrfTokens(except: [
             'webhooks/paystack',
+            'webhooks/twilio/status',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

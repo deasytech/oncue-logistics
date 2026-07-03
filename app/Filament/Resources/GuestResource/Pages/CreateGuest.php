@@ -66,26 +66,22 @@ class CreateGuest extends CreateRecord
                 $customerName = $guest->customer->full_name ?? 'our customer';
                 $message = "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 
-                $to = app(TwilioService::class)->formatE164($guest->phone);
-                if ($to) {
-                    $twilioService = app(TwilioService::class);
+                $twilioService = app(TwilioService::class);
+                $to = $twilioService->formatE164($guest->phone);
+                if ($to && $twilioService->isValidE164($to)) {
+                    $meta = ['guest_id' => $guest->id, 'event_id' => $event->id];
 
-                    // Try WhatsApp template first, fallback to regular WhatsApp
-                    $whatsappSuccess = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
+                    $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
 
-                    // if (!$whatsappSuccess) {
-                    //     $whatsappSuccess = $twilioService->sendWhatsApp($to, $message);
-                    // }
-
-                    if ($whatsappSuccess) {
+                    if ($outcome->success) {
                         Notification::make()
                             ->success()
                             ->title('RSVP WhatsApp Sent')
                             ->body('An RSVP WhatsApp invitation has been sent to ' . $guest->phone)
                             ->send();
-                    } else {
-                        // WhatsApp failed, try SMS as fallback
-                        $smsSuccess = $twilioService->sendSms($to, $message);
+                    } elseif ($outcome->fallbackToSmsRecommended) {
+                        // WhatsApp failed in a way SMS might recover from — try SMS as fallback
+                        $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
                         if ($smsSuccess) {
                             Notification::make()
                                 ->success()
@@ -99,7 +95,19 @@ class CreateGuest extends CreateRecord
                                 ->body('Failed to send RSVP via WhatsApp and SMS to ' . $guest->phone)
                                 ->send();
                         }
+                    } else {
+                        Notification::make()
+                            ->warning()
+                            ->title('Notification Failed')
+                            ->body("Failed to send RSVP to {$guest->phone}: {$outcome->errorMessage} (code {$outcome->errorCode})")
+                            ->send();
                     }
+                } else {
+                    Notification::make()
+                        ->warning()
+                        ->title('Invalid Phone Number')
+                        ->body('Could not send RSVP: ' . $guest->phone . ' is not a valid phone number.')
+                        ->send();
                 }
             } catch (\Exception $e) {
                 // Show error notification if WhatsApp/SMS fails

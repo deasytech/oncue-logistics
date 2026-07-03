@@ -60,21 +60,25 @@ class SendRsvpReminders extends Command
             $rsvpLink = route('rsvp.show', $rsvpToken);
             $message = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: " . $rsvpLink;
 
-            $whatsappSuccess = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
+            $meta = ['guest_id' => $guest->id, 'event_id' => $event->id];
+            $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
 
             $sent = false;
-            if ($whatsappSuccess) {
+            if ($outcome->success) {
                 $sent = true;
                 $this->info("WhatsApp reminder sent to {$guest->phone} for event {$event->name}");
-            } else {
-                // WhatsApp failed, try SMS as fallback
-                $smsSuccess = $twilio->sendSms($guest->phone, $message);
+            } elseif ($outcome->fallbackToSmsRecommended) {
+                // WhatsApp failed in a way SMS might recover from — try SMS as fallback
+                $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
                 if ($smsSuccess) {
                     $sent = true;
-                    $this->info("WhatsApp failed, SMS fallback sent to {$guest->phone} for event {$event->name}");
+                    $this->info("WhatsApp failed ({$outcome->errorCode}), SMS fallback sent to {$guest->phone} for event {$event->name}");
                 } else {
                     $this->error("Failed to send to {$guest->phone} for event {$event->name} via WhatsApp and SMS");
                 }
+            } else {
+                // e.g. 21211/63024 - bad number, SMS to the same number won't fare better
+                $this->error("Skipped {$guest->phone} for event {$event->name}: {$outcome->errorMessage} (code {$outcome->errorCode})");
             }
 
             // Update attempts and last sent timestamp in pivot table if at least one channel succeeded
@@ -84,9 +88,6 @@ class SendRsvpReminders extends Command
                     'last_reminder_sent_at' => now(),
                 ]);
             }
-
-            // Throttle: wait 1 second to avoid API rate limits
-            sleep(1);
         }
 
         return 0;

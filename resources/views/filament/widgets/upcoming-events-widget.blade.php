@@ -20,7 +20,7 @@
                         </p>
                         <div class="space-y-2">
                             @foreach ($events as $event)
-                                <a href="{{ url('/admin/events/' . $event->id) }}"
+                                <a href="{{ url('/admin/events/' . $event->id . '/view') }}"
                                     class="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/5 border-l-4 border-primary-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                                     {{-- Date badge --}}
                                     <div class="shrink-0 text-center min-w-[2.75rem]">

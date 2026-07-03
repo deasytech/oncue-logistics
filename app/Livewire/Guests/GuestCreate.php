@@ -199,30 +199,29 @@ class GuestCreate extends Component
 
                     if ($guestForEvent->phone) {
                         try {
-                            $to = app(TwilioService::class)->formatE164($guestForEvent->phone);
-                            if ($to) {
-                                $twilioService = app(TwilioService::class);
+                            $twilioService = app(TwilioService::class);
+                            $to = $twilioService->formatE164($guestForEvent->phone);
 
-                                // Try WhatsApp template first, fallback to regular WhatsApp
-                                $whatsappSuccess = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
+                            if ($to && $twilioService->isValidE164($to)) {
+                                $meta = ['guest_id' => $guestForEvent->id, 'event_id' => $eventId];
 
-                                // if (!$whatsappSuccess) {
-                                //     $whatsappSuccess = $twilioService->sendWhatsApp($to, $message);
-                                // }
+                                $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
 
-                                if ($whatsappSuccess) {
+                                if ($outcome->success) {
                                     logger()->info('RSVP WhatsApp sent successfully to guest: ' . $to);
-                                } else {
-                                    logger()->warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
-                                    $smsSuccess = $twilioService->sendSms($to, $message);
+                                } elseif ($outcome->fallbackToSmsRecommended) {
+                                    logger()->warning("RSVP WhatsApp failed ({$outcome->errorCode}), falling back to SMS for guest: " . $to);
+                                    $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
                                     if ($smsSuccess) {
                                         logger()->info('RSVP SMS fallback sent successfully to guest: ' . $to);
                                     } else {
                                         logger()->warning('RSVP SMS fallback also failed for guest: ' . $to);
                                     }
+                                } else {
+                                    logger()->warning("RSVP WhatsApp skipped SMS fallback for guest: {$to} - non-recoverable error {$outcome->errorCode}: {$outcome->errorMessage}");
                                 }
                             } else {
-                                logger()->warning('Skipped RSVP notification: unable to format phone for guest: ' . $guestForEvent->phone);
+                                logger()->warning('Skipped RSVP notification: invalid/unformattable phone for guest: ' . $guestForEvent->phone);
                             }
                         } catch (\Exception $e) {
                             logger()->error('Failed to send RSVP notification to guest: ' . $guestForEvent->phone . ' - ' . $e->getMessage());

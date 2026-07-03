@@ -46,7 +46,7 @@
                 </h3>
                 <div class="space-y-1.5">
                     @forelse ($topCustomers as $customer)
-                        <a href="{{ url('/admin/customers/' . $customer->id) }}"
+                        <a href="{{ url('/admin/customers/' . $customer->id . '/view') }}"
                             class="flex items-center justify-between px-2.5 py-2 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                             <p
                                 class="text-xs font-medium text-gray-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
@@ -70,7 +70,7 @@
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     @forelse ($recentActiveCustomers as $customer)
-                        <a href="{{ url('/admin/customers/' . $customer->id) }}"
+                        <a href="{{ url('/admin/customers/' . $customer->id . '/view') }}"
                             class="flex items-center justify-between px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                             <div class="min-w-0">
                                 <p

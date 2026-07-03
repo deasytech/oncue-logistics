@@ -19,7 +19,7 @@
                 </h3>
                 <div class="space-y-1.5">
                     @forelse ($recentCustomers as $customer)
-                        <a href="{{ url('/admin/customers/' . $customer->id) }}"
+                        <a href="{{ url('/admin/customers/' . $customer->id . '/view') }}"
                             class="block px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0 flex items-center gap-2">
@@ -66,7 +66,7 @@
                 </h3>
                 <div class="space-y-1.5">
                     @forelse ($recentEvents as $event)
-                        <a href="{{ url('/admin/events/' . $event->id) }}"
+                        <a href="{{ url('/admin/events/' . $event->id . '/view') }}"
                             class="block px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0 flex items-center gap-2">
@@ -114,7 +114,7 @@
                 </h3>
                 <div class="space-y-1.5">
                     @forelse ($recentGuests as $guest)
-                        <a href="{{ url('/admin/guests/' . $guest->id) }}"
+                        <a href="{{ url('/admin/guests/' . $guest->id . '/view') }}"
                             class="block px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors group">
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0 flex items-center gap-2">

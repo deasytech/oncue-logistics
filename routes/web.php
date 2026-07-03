@@ -112,6 +112,13 @@ Route::get('/delivery/paystack/redirect', [PaystackController::class, 'deliveryR
 // Paystack dashboard under Settings > API Keys & Webhooks.
 Route::post('/webhooks/paystack', [App\Http\Controllers\PaystackWebhookController::class, 'handle'])->name('webhook.paystack');
 
+// Twilio server-to-server status callback — records delivery/error status (63049, 63018,
+// 21211, etc.) for every WhatsApp/SMS send as it happens, instead of only being visible by
+// manually pulling the Twilio console logs. Set automatically per-message by TwilioService,
+// or register https://your-domain/webhooks/twilio/status as the Messaging Service's Status
+// Callback URL in the Twilio console.
+Route::post('/webhooks/twilio/status', [App\Http\Controllers\TwilioStatusWebhookController::class, 'handle'])->name('webhooks.twilio.status');
+
 // Invoice Payment Routes
 Route::get('/invoice/pay/{token}', [InvoiceController::class, 'showPayment'])->name('invoice.payment');
 Route::post('/invoice/pay/{token}', [InvoiceController::class, 'initializePayment'])->name('invoice.payment.process');

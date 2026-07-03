@@ -307,21 +307,22 @@ class GuestImport extends Component
 
               if ($guest->phone) {
                 try {
-                  $to = app(TwilioService::class)->formatE164($guest->phone);
-                  if ($to) {
-                    $twilioService = app(TwilioService::class);
+                  $twilioService = app(TwilioService::class);
+                  $to = $twilioService->formatE164($guest->phone);
+                  if ($to && $twilioService->isValidE164($to)) {
                     $guestName = trim($guest->title . ' ' . $guest->first_name);
                     $customerName = $guest->customer?->full_name ?? 'our host';
+                    $meta = ['guest_id' => $guest->id, 'event_id' => $rowEventId];
 
-                    $whatsappSuccess = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName);
+                    $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
 
-                    if ($whatsappSuccess) {
+                    if ($outcome->success) {
                       $importResults['sms_sent']++;
                       Log::info('RSVP WhatsApp sent successfully to guest: ' . $to);
-                    } else {
-                      Log::warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                    } elseif ($outcome->fallbackToSmsRecommended) {
+                      Log::warning("RSVP WhatsApp failed ({$outcome->errorCode}), falling back to SMS for guest: " . $to);
                       if ($smsMessage) {
-                        $smsSuccess = $twilioService->sendSms($to, $smsMessage);
+                        $smsSuccess = $twilioService->sendSms($to, $smsMessage, 'rsvp_invite', $meta);
                         if ($smsSuccess) {
                           $importResults['sms_sent']++;
                           Log::info('RSVP SMS fallback sent successfully to guest: ' . $to);
@@ -334,14 +335,21 @@ class GuestImport extends Component
                           Log::warning('RSVP SMS fallback also failed for guest: ' . $to);
                         }
                       }
+                    } else {
+                      $importResults['sms_errors'][] = [
+                        'guest' => $guest->full_name,
+                        'phone' => $guest->phone,
+                        'error' => "WhatsApp non-recoverable error {$outcome->errorCode}: {$outcome->errorMessage}",
+                      ];
+                      Log::warning("RSVP WhatsApp skipped SMS fallback for guest: {$to} - non-recoverable error {$outcome->errorCode}");
                     }
                   } else {
                     $importResults['sms_errors'][] = [
                       'guest' => $guest->full_name,
                       'phone' => $guest->phone,
-                      'error' => 'Unable to format phone number to E.164',
+                      'error' => 'Invalid or unformattable phone number',
                     ];
-                    Log::warning('Skipped RSVP notification: unable to format phone for guest: ' . $guest->phone);
+                    Log::warning('Skipped RSVP notification: invalid/unformattable phone for guest: ' . $guest->phone);
                   }
                 } catch (\Exception $e) {
                   $importResults['sms_errors'][] = [

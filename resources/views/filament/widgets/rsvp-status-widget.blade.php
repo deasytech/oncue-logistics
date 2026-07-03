@@ -11,7 +11,7 @@
         </x-slot>
 
         {{-- Stat cards --}}
-        <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div
                 class="rounded-xl p-4 bg-blue-50 dark:bg-blue-950/30 ring-1 ring-inset ring-blue-200/50 dark:ring-blue-800/30">
                 <div class="flex items-center gap-2 mb-1">

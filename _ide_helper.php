@@ -26677,6 +26677,10 @@ namespace App\Filament\Resources\GuestResource\Pages {
      */
     class ListGuests extends \Filament\Resources\Pages\ListRecords {
             }
+    /**
+     */
+    class ViewGuest extends \Filament\Resources\Pages\ViewRecord {
+            }
     }
 
 namespace App\Filament\Resources\InvoiceResource\Pages {
@@ -26834,6 +26838,17 @@ namespace App\Filament\Resources\ProjectInfoResource\Widgets {
     /**
      */
     class projectInfo extends \Filament\Widgets\Widget {
+            }
+    }
+
+namespace App\Filament\Resources\TwilioMessageLogResource\Pages {
+    /**
+     */
+    class ListTwilioMessageLogs extends \Filament\Resources\Pages\ListRecords {
+            }
+    /**
+     */
+    class ViewTwilioMessageLog extends \Filament\Resources\Pages\ViewRecord {
             }
     }
 
@@ -32472,6 +32487,11 @@ namespace  {
 }
 
 
+namespace Facades\Livewire\Features\SupportFileUploads {
+    /**
+     * @mixin \Livewire\Features\SupportFileUploads\GenerateSignedUploadUrl     */
+    class GenerateSignedUploadUrl extends \Livewire\Features\SupportFileUploads\GenerateSignedUploadUrl {}
+}
 
 
 
