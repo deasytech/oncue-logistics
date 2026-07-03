@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PackagePaymentResource\Pages;
 use App\Models\PaymentRecord;
 use Filament\Forms;
+use Illuminate\Support\Facades\DB;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -164,6 +165,58 @@ class PackagePaymentResource extends Resource
       ->actions([
         ActionGroup::make([
           Tables\Actions\ViewAction::make(),
+          Tables\Actions\Action::make('update_status')
+            ->label('Update Status')
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->fillForm(fn(PaymentRecord $record): array => [
+              'status' => $record->status,
+            ])
+            ->form([
+              Forms\Components\Select::make('status')
+                ->label('Payment Status')
+                ->options([
+                  'pending' => 'Pending',
+                  'success' => 'Success',
+                  'failed' => 'Failed',
+                ])
+                ->required(),
+            ])
+            ->action(function (PaymentRecord $record, array $data): void {
+              $key = $record->payment_key;
+              [$type, $id] = explode('-', $key, 2);
+
+              if ($type === 'package') {
+                DB::table('package_payments')
+                  ->where('id', $id)
+                  ->update(['status' => $data['status']]);
+              } elseif ($type === 'fabric') {
+                // View maps 'paid' -> 'success'; reverse the mapping on save
+                $dbStatus = $data['status'] === 'success' ? 'paid' : $data['status'];
+
+                // Fetch guest_id and event_id before updating
+                $fabricSelection = DB::table('guest_fabric_selections')
+                  ->where('id', $id)
+                  ->select(['guest_id', 'event_id'])
+                  ->first();
+
+                DB::table('guest_fabric_selections')
+                  ->where('id', $id)
+                  ->update(['payment_status' => $dbStatus]);
+
+                // When payment is confirmed as successful, confirm the guest order
+                if ($data['status'] === 'success' && $fabricSelection) {
+                  DB::table('event_guest')
+                    ->where('guest_id', $fabricSelection->guest_id)
+                    ->where('event_id', $fabricSelection->event_id)
+                    ->update([
+                      'attendance_status' => 'confirmed',
+                      'rsvp_responded_at' => now(),
+                    ]);
+                }
+              }
+            })
+            ->successNotificationTitle('Payment status updated'),
           Tables\Actions\DeleteAction::make(),
         ])
       ])

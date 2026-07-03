@@ -6,7 +6,9 @@ use App\Filament\Resources\GuestOrderResource\Pages;
 use App\Models\Event;
 use App\Models\EventGuest;
 use Carbon\Carbon;
+use Filament\Forms;
 use Filament\Forms\Form;
+use Illuminate\Support\Facades\DB;
 use Filament\Infolists\Components\Grid as InfolistGrid;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
@@ -14,6 +16,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -328,7 +331,39 @@ class GuestOrderResource extends Resource
                     ->query(fn(Builder $q): Builder => $q->where('gfs.payment_status', 'pending')),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                ActionGroup::make([
+                    Tables\Actions\ViewAction::make(),
+                    Tables\Actions\Action::make('update_rsvp')
+                        ->label('Update RSVP')
+                        ->icon('heroicon-o-pencil')
+                        ->color('primary')
+                        ->fillForm(fn(EventGuest $record): array => [
+                            'attendance_status' => $record->attendance_status,
+                            'rsvp_responded_at' => $record->rsvp_responded_at ?? now(),
+                        ])
+                        ->form([
+                            Forms\Components\Select::make('attendance_status')
+                                ->label('RSVP Status')
+                                ->options([
+                                    'confirmed' => 'Confirmed',
+                                    'declined'  => 'Declined',
+                                ])
+                                ->placeholder('Pending')
+                                ->nullable(),
+                            Forms\Components\DateTimePicker::make('rsvp_responded_at')
+                                ->label('Responded At')
+                                ->nullable(),
+                        ])
+                        ->action(function (EventGuest $record, array $data): void {
+                            DB::table('event_guest')
+                                ->where('id', $record->getKey())
+                                ->update([
+                                    'attendance_status' => $data['attendance_status'] ?: null,
+                                    'rsvp_responded_at' => $data['rsvp_responded_at'],
+                                ]);
+                        })
+                        ->successNotificationTitle('RSVP status updated'),
+                ]),
             ])
             ->bulkActions([]);
     }

@@ -107,6 +107,11 @@ Route::get('migrate', function () {
 Route::get('/payment/callback', [PaystackController::class, 'handle'])->name('payment.callback');
 Route::get('/delivery/paystack/redirect', [PaystackController::class, 'deliveryRedirect'])->name('delivery.paystack.redirect');
 
+// Paystack server-to-server webhook — keeps payment status in sync even when the
+// customer never returns to the browser callback above. Register this URL in the
+// Paystack dashboard under Settings > API Keys & Webhooks.
+Route::post('/webhooks/paystack', [App\Http\Controllers\PaystackWebhookController::class, 'handle'])->name('webhook.paystack');
+
 // Invoice Payment Routes
 Route::get('/invoice/pay/{token}', [InvoiceController::class, 'showPayment'])->name('invoice.payment');
 Route::post('/invoice/pay/{token}', [InvoiceController::class, 'initializePayment'])->name('invoice.payment.process');
@@ -146,5 +151,19 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
 });
 
+// Temporary: verify the Paystack webhook signature/routing works — remove after testing
+Route::get('/test-webhook', function () {
+    $body = json_encode([
+        'event' => 'charge.success',
+        'data' => ['id' => 1, 'reference' => 'TEST-NONEXISTENT-REF', 'status' => 'success', 'metadata' => []],
+    ]);
+    $signature = hash_hmac('sha512', $body, config('services.paystack.secret'));
+
+    $response = \Illuminate\Support\Facades\Http::withHeaders(['x-paystack-signature' => $signature])
+        ->withBody($body, 'application/json')
+        ->post(route('webhook.paystack'));
+
+    return [$response->status(), $response->json()];
+});
 
 require __DIR__ . '/auth.php';

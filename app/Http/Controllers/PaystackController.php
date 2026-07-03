@@ -24,43 +24,18 @@ class PaystackController extends Controller
 
         if ($response['status'] && $response['data']['status'] === 'success') {
             $payment = PackagePayment::where('reference', $reference)->firstOrFail();
-            $payment->update(['status' => 'success']);
+            $isDelivery = $this->confirmPackagePayment($payment);
 
-            // Check if this is a delivery service payment
-            $items = $payment->items;
-            if (isset($items['type']) && $items['type'] === 'delivery_service') {
-                // Update delivery payment status
-                $delivery = Delivery::find($items['delivery_id']);
-                if ($delivery) {
-                    $delivery->update([
-                        'payment_status' => 'paid',
-                        'paid_at' => now(),
-                    ]);
-                }
-
+            if ($isDelivery) {
                 // Redirect to delivery services page with post-payment modal
                 return redirect()->route('delivery.services')
                     ->with('show_post_payment_modal', true)
                     ->with('message', 'Delivery service payment successful!');
-            } else {
-                // Handle package customization payment (regular package payments)
-                // Update item statuses to ordered
-                PackageCustomization::where('customer_id', $payment->customer_id)
-                    ->where('status', 'in_cart')
-                    ->update(['status' => 'ordered']);
-
-                // Send order confirmation email
-                try {
-                    $customerEmail = $payment->customer_info['email'] ?? $payment->customer->email;
-                    Mail::to($customerEmail)->send(new OrderConfirmationMail($payment, $payment->items));
-                } catch (\Exception $e) {
-                    Log::error('Failed to send order confirmation email: ' . $e->getMessage());
-                }
-
-                // Redirect to order confirmation page
-                return redirect()->route('order.confirmation.online', ['reference' => $reference])
-                    ->with('success', 'Payment successful! Your order is being processed.');
             }
+
+            // Redirect to order confirmation page
+            return redirect()->route('order.confirmation.online', ['reference' => $reference])
+                ->with('success', 'Payment successful! Your order is being processed.');
         }
 
         // If failed
@@ -90,6 +65,49 @@ class PaystackController extends Controller
 
         return redirect()->route('cart.summary')
             ->with('error', 'Payment verification failed. Please try again or contact support.');
+    }
+
+    /**
+     * Mark a package/delivery payment as paid and run the post-payment side effects.
+     * Idempotent so it's safe to call from both the browser callback and the webhook.
+     * Returns true if this was a delivery service payment, false otherwise.
+     */
+    public function confirmPackagePayment(PackagePayment $payment): bool
+    {
+        $items = $payment->items;
+        $isDelivery = isset($items['type']) && $items['type'] === 'delivery_service';
+
+        if ($payment->status === 'success') {
+            return $isDelivery;
+        }
+
+        $payment->update(['status' => 'success']);
+
+        if ($isDelivery) {
+            $delivery = Delivery::find($items['delivery_id']);
+            if ($delivery) {
+                $delivery->update([
+                    'payment_status' => 'paid',
+                    'paid_at' => now(),
+                ]);
+            }
+        } else {
+            // Handle package customization payment (regular package payments)
+            // Update item statuses to ordered
+            PackageCustomization::where('customer_id', $payment->customer_id)
+                ->where('status', 'in_cart')
+                ->update(['status' => 'ordered']);
+
+            // Send order confirmation email
+            try {
+                $customerEmail = $payment->customer_info['email'] ?? $payment->customer->email;
+                Mail::to($customerEmail)->send(new OrderConfirmationMail($payment, $payment->items));
+            } catch (\Exception $e) {
+                Log::error('Failed to send order confirmation email: ' . $e->getMessage());
+            }
+        }
+
+        return $isDelivery;
     }
 
     public function deliveryRedirect(Request $request)

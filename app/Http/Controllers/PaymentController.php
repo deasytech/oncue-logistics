@@ -312,28 +312,7 @@ class PaymentController extends Controller
             ->json();
 
         if ($response['status'] && $response['data']['status'] === 'success') {
-            // Update payment status
-            $fabricSelection->update([
-                'payment_status' => 'paid',
-                'paid_at' => now(),
-            ]);
-
-            // Now that payment is confirmed, mark the guest's RSVP as confirmed
-            DB::table('event_guest')
-                ->where('rsvp_token', $token)
-                ->where('guest_id', $fabricSelection->guest_id)
-                ->update([
-                    'attendance_status' => 'confirmed',
-                    'rsvp_responded_at' => now(),
-                ]);
-
-            // Send order to delivery middleware after successful payment
-            $this->sendOrderToDeliveryMiddleware($fabricSelection);
-
-            // Send payment confirmation email
-            if ($fabricSelection->guest->email) {
-                Mail::to($fabricSelection->guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
-            }
+            $this->confirmFabricSelectionPayment($fabricSelection);
 
             return redirect()->route('rsvp.show', $token)
                 ->with('success', 'Payment completed successfully! Your order has been confirmed.');
@@ -428,6 +407,36 @@ class PaymentController extends Controller
         }
     }
 
+
+    /**
+     * Mark a fabric order as paid and run the post-payment side effects.
+     * Idempotent so it's safe to call from both the browser callback and the webhook.
+     */
+    public function confirmFabricSelectionPayment(GuestFabricSelection $fabricSelection): void
+    {
+        if ($fabricSelection->payment_status === 'paid') {
+            return;
+        }
+
+        $fabricSelection->update([
+            'payment_status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        DB::table('event_guest')
+            ->where('guest_id', $fabricSelection->guest_id)
+            ->where('event_id', $fabricSelection->event_id)
+            ->update([
+                'attendance_status' => 'confirmed',
+                'rsvp_responded_at' => now(),
+            ]);
+
+        $this->sendOrderToDeliveryMiddleware($fabricSelection);
+
+        if ($fabricSelection->guest->email) {
+            Mail::to($fabricSelection->guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
+        }
+    }
 
     /**
      * Send order to delivery middleware after successful payment
