@@ -26,8 +26,8 @@ class RsvpController extends Controller
             abort(404, 'Invalid RSVP link.');
         }
 
-        // Check if RSVP link has expired
-        if (now()->greaterThan($guestEvent->rsvp_expires_at)) {
+        // Check if RSVP link has expired (NULL means no expiry)
+        if ($guestEvent->rsvp_expires_at && now()->greaterThan($guestEvent->rsvp_expires_at)) {
             abort(403, 'RSVP link has expired.');
         }
 
@@ -136,7 +136,8 @@ class RsvpController extends Controller
             abort(404, 'Invalid RSVP link.');
         }
 
-        if (now()->greaterThan($guestEvent->rsvp_expires_at)) {
+        // Check if RSVP link has expired (NULL means no expiry)
+        if ($guestEvent->rsvp_expires_at && now()->greaterThan($guestEvent->rsvp_expires_at)) {
             abort(403, 'RSVP link has expired.');
         }
 

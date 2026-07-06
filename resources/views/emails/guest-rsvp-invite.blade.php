@@ -26,8 +26,12 @@
                 </a>
             </p>
             <p style="text-align: center; font-size: 12px; color: #666;">
-                RSVP expires:
-                {{ \Carbon\Carbon::parse($guest->events->first()->pivot->rsvp_expires_at)->format('M d, Y h:i A') }}
+                @if ($guest->events->first()->pivot->rsvp_expires_at)
+                    RSVP expires:
+                    {{ \Carbon\Carbon::parse($guest->events->first()->pivot->rsvp_expires_at)->format('M d, Y h:i A') }}
+                @else
+                    This RSVP does not expire.
+                @endif
             </p>
             <p style="text-align: center; font-size: 12px; color: #666;">
                 Host: {{ $guest->customer_name }}

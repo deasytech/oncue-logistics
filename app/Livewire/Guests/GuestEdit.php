@@ -118,6 +118,8 @@ class GuestEdit extends Component
 
         // Sync events - handle existing and new attachments
         $eventData = [];
+        // Pre-load events to get their rsvp_expires_at setting for new attachments
+        $eventModels = Event::whereIn('id', $this->selectedEvents)->get()->keyBy('id');
         foreach ($this->selectedEvents as $eventId) {
             // Check if guest is already attached to this event
             $existingPivot = $this->guest->events()->where('event_id', $eventId)->first();
@@ -131,12 +133,13 @@ class GuestEdit extends Component
                     'rsvp_expires_at' => $existingPivot->pivot->rsvp_expires_at,
                 ];
             } else {
-                // New attachment
+                // New attachment — inherit event-level expiry (null = never expires)
+                $eventModel = $eventModels->get($eventId);
                 $eventData[$eventId] = [
                     'attendance_status' => 'invited',
                     'rsvp_token' => Str::random(32),
                     'rsvp_sent_at' => now(),
-                    'rsvp_expires_at' => now()->addDays(7),
+                    'rsvp_expires_at' => $eventModel?->rsvp_expires_at ?? null,
                 ];
             }
         }

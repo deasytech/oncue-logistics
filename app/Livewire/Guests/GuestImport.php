@@ -270,10 +270,11 @@ class GuestImport extends Component
           // Attach to event if specified
           if ($rowEventId) {
             $rsvpToken = Str::random(32);
+            $eventModel = Event::find($rowEventId);
             $guest->events()->attach($rowEventId, [
               'rsvp_token' => $rsvpToken,
               'rsvp_sent_at' => now(),
-              'rsvp_expires_at' => now()->addDays(7),
+              'rsvp_expires_at' => $eventModel?->rsvp_expires_at ?? null,
               'attendance_status' => 'invited',
             ]);
 

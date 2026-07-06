@@ -355,7 +355,12 @@
                 <!-- Delivery zones are now handled in the package customizer page -->
 
                 <div id="rsvp-expiry-section" class="text-sm text-gray-600 border-t pt-4">
-                    <p>RSVP expires: {{ \Carbon\Carbon::parse($rsvp_data->rsvp_expires_at)->format('M d, Y h:i A') }}
+                    <p>
+                        @if ($rsvp_data->rsvp_expires_at)
+                            RSVP expires: {{ \Carbon\Carbon::parse($rsvp_data->rsvp_expires_at)->format('M d, Y h:i A') }}
+                        @else
+                            This RSVP does not expire.
+                        @endif
                     </p>
                 </div>
 

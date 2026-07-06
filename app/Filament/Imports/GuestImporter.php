@@ -90,10 +90,11 @@ class GuestImporter extends Importer
         if ($eventId) {
             // Attach guest to event with RSVP details
             $rsvpToken = Str::random(32);
+            $event = Event::find($eventId);
             $guest->events()->attach($eventId, [
                 'rsvp_token' => $rsvpToken,
                 'rsvp_sent_at' => now(),
-                'rsvp_expires_at' => now()->addDays(7),
+                'rsvp_expires_at' => $event?->rsvp_expires_at ?? null,
                 'attendance_status' => 'invited',
             ]);
 

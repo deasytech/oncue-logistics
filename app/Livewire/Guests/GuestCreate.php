@@ -154,12 +154,15 @@ class GuestCreate extends Component
         // Attach guest to selected events
         if (!empty($this->selectedEvents)) {
             $eventData = [];
+            // Pre-load events to get their rsvp_expires_at setting
+            $events = Event::whereIn('id', $this->selectedEvents)->get()->keyBy('id');
             foreach ($this->selectedEvents as $eventId) {
+                $event = $events->get($eventId);
                 $eventData[$eventId] = [
                     'attendance_status' => 'invited',
                     'rsvp_token' => Str::random(32),
                     'rsvp_sent_at' => now(),
-                    'rsvp_expires_at' => now()->addDays(7),
+                    'rsvp_expires_at' => $event?->rsvp_expires_at ?? null,
                 ];
             }
             $guest->events()->attach($eventData);

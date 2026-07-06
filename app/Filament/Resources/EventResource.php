@@ -118,6 +118,15 @@ class EventResource extends Resource
                         ->required()
                         ->inline(false)
                         ->default(true),
+                    Forms\Components\DateTimePicker::make('rsvp_expires_at')
+                        ->label('RSVP Expiry Date & Time')
+                        ->hint('Optional — leave blank for RSVPs that never expire')
+                        ->helperText('When set, all new guest RSVPs for this event will inherit this expiry date. Existing unanswered RSVPs are not affected retroactively.')
+                        ->nullable()
+                        ->native(false)
+                        ->seconds(false)
+                        ->displayFormat('D, d M Y H:i')
+                        ->columnSpan(2),
                 ])->columnSpan(3)->columns(3),
                 Forms\Components\RichEditor::make('notes')
                     ->columnSpanFull(),

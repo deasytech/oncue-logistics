@@ -25,11 +25,13 @@ class Event extends Model
         'notes',
         'slug',
         'is_active',
+        'rsvp_expires_at',
     ];
 
     protected $casts = [
         'event_date' => 'datetime',
         'is_active' => 'boolean',
+        'rsvp_expires_at' => 'datetime',
     ];
 
     protected $appends = ['display_subcategory'];
