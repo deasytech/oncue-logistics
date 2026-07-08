@@ -228,6 +228,8 @@
                         </div>
                         <p class="text-sm text-gray-500 mt-2">Select the fabrics you're interested in. You can choose
                             multiple fabrics.</p>
+                        <p id="no-fabric-delivery-hint" class="hidden text-sm text-amber-600 mt-2">Select at least one
+                            fabric above to see delivery address &amp; method options.</p>
                     </div>
                 @endif
 
@@ -638,15 +640,27 @@
         const updateAddressCheckbox = document.getElementById('update_address');
         const addressUpdateFields = document.getElementById('address_update_fields');
 
+        function hasFabricSelected() {
+            if (!fabricSelectionSection) return false;
+            return Array.from(fabricSelectionSection.querySelectorAll('input[name="fabric_types[]"]'))
+                .some(checkbox => checkbox.checked);
+        }
+
         function toggleAttendanceDependentSections() {
             const shouldShowSections = attendanceSelect.value === 'confirmed' || fabricPurchaseYes.checked;
+            const shouldShowDelivery = shouldShowSections && hasFabricSelected();
+            const noFabricHint = document.getElementById('no-fabric-delivery-hint');
 
             if (plusOneSection) {
                 plusOneSection.classList.toggle('hidden', !shouldShowSections);
             }
 
             if (deliveryAddressSection) {
-                deliveryAddressSection.classList.toggle('hidden', !shouldShowSections);
+                deliveryAddressSection.classList.toggle('hidden', !shouldShowDelivery);
+            }
+
+            if (noFabricHint) {
+                noFabricHint.classList.toggle('hidden', !(shouldShowSections && !hasFabricSelected()));
             }
 
             if (rsvpExpirySection) {
@@ -657,7 +671,9 @@
                 if (plusOneInput) {
                     plusOneInput.value = '';
                 }
+            }
 
+            if (!shouldShowDelivery) {
                 if (updateAddressCheckbox) {
                     updateAddressCheckbox.checked = false;
                 }
@@ -731,6 +747,15 @@
 
         if (fabricPurchaseNo) {
             fabricPurchaseNo.addEventListener('change', toggleFabricSelectionVisibility);
+        }
+
+        // Re-evaluate delivery section visibility whenever a fabric checkbox is toggled
+        if (fabricSelectionSection) {
+            fabricSelectionSection.addEventListener('change', function(e) {
+                if (e.target.matches('input[name="fabric_types[]"]')) {
+                    toggleAttendanceDependentSections();
+                }
+            });
         }
 
         // Handle form submission and disable submit button
@@ -830,7 +855,7 @@
                     submitButton.disabled = true;
                     submitButton.textContent = 'Response Submitted ✓';
                     submitButton.classList.add('bg-green-600', 'hover:bg-green-700');
-                    submitButton.classList.remove('bg-pink-600', 'hover:bg极速赛车开奖结果查询-pink-700');
+                    submitButton.classList.remove('bg-pink-600', 'hover:bg-pink-700');
                 @endif
 
                 // Handle form submission
@@ -876,7 +901,6 @@
                             // Remove required attributes from payment method section
                             const paymentMethodSection = document.querySelector(
                                 '[data-section="payment-method"]');
-                            极速赛车开奖结果查询
                             if (paymentMethodSection) {
                                 const radioButtons = paymentMethodSection.querySelectorAll(
                                     'input[type="radio"]');
