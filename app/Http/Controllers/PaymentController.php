@@ -483,41 +483,74 @@ class PaymentController extends Controller
             $apiUrl = config('delivery.middleware_url') . config('delivery.endpoints.orders');
             $apiKey = config('delivery.middleware_api_key');
 
+            Log::info('Delivery middleware URL', [
+                'url' => $apiUrl,
+            ]);
+
             $response = Http::timeout(config('delivery.timeout'))
                 ->withHeaders([
                     'Content-Type' => 'application/json',
-                    'X-API-KEY' => $apiKey
+                    'Accept' => 'application/json',
+                    'X-API-KEY' => $apiKey,
                 ])
                 ->post($apiUrl, $orderData);
 
-            // Log the response for debugging
+            $contentType = $response->header('Content-Type');
+
             Log::info('Delivery middleware API response', [
-                'order_id' => $fabricSelection->id,
+                'fabric_selection_id' => $fabricSelection->id,
+                'request_url' => $apiUrl,
+                'method' => 'POST',
+
                 'status' => $response->status(),
-                'response' => $response->body(),
-                'request_data' => $orderData
+
+                'successful' => $response->successful(),
+
+                'redirect' => $response->redirect(),
+
+                'content_type' => $response->header('Content-Type'),
+
+                'server' => $response->header('Server'),
+
+                'location' => $response->header('Location'),
+
+                'headers' => $response->headers(),
+
+                'body' => $response->body(),
             ]);
 
-            if ($response->successful()) {
-                $responseData = $response->json();
+            // Ensure the response is JSON before decoding
+            if (! str_contains($contentType ?? '', 'application/json')) {
 
-                // Store the external order ID if returned
-                if (isset($responseData['order_id'])) {
-                    $fabricSelection->update([
-                        'external_order_id' => $responseData['order_id']
-                    ]);
-                }
+                Log::error('Delivery middleware returned non-JSON response', [
+                    'fabric_selection_id' => $fabricSelection->id,
+                    'status' => $response->status(),
+                    'content_type' => $contentType,
+                    'url' => $apiUrl,
+                    'body' => substr($response->body(), 0, 5000),
+                ]);
+
+                return;
+            }
+
+            $responseData = $response->json();
+
+            if ($response->successful() && isset($responseData['order_id'])) {
+
+                $fabricSelection->update([
+                    'external_order_id' => $responseData['order_id'],
+                ]);
 
                 Log::info('Order successfully sent to delivery middleware', [
                     'fabric_selection_id' => $fabricSelection->id,
-                    'external_order_id' => $responseData['order_id'] ?? null
+                    'external_order_id' => $responseData['order_id'],
                 ]);
             } else {
-                Log::error('Failed to send order to delivery middleware', [
+
+                Log::error('Delivery middleware returned an unexpected JSON response', [
                     'fabric_selection_id' => $fabricSelection->id,
                     'status' => $response->status(),
-                    'response' => $response->body(),
-                    'request_data' => $orderData
+                    'response' => $responseData,
                 ]);
             }
         } catch (\Exception $e) {

@@ -315,34 +315,25 @@ class GuestImport extends Component
                     $customerName = $guest->customer?->full_name ?? 'our host';
                     $meta = ['guest_id' => $guest->id, 'event_id' => $rowEventId];
 
-                    $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
+                    $smsSuccess = $smsMessage ? $twilioService->sendSms($to, $smsMessage, 'rsvp_invite', $meta) : false;
 
-                    if ($outcome->success) {
+                    if ($smsSuccess) {
                       $importResults['sms_sent']++;
-                      Log::info('RSVP WhatsApp sent successfully to guest: ' . $to);
-                    } elseif ($outcome->fallbackToSmsRecommended) {
-                      Log::warning("RSVP WhatsApp failed ({$outcome->errorCode}), falling back to SMS for guest: " . $to);
-                      if ($smsMessage) {
-                        $smsSuccess = $twilioService->sendSms($to, $smsMessage, 'rsvp_invite', $meta);
-                        if ($smsSuccess) {
-                          $importResults['sms_sent']++;
-                          Log::info('RSVP SMS fallback sent successfully to guest: ' . $to);
-                        } else {
-                          $importResults['sms_errors'][] = [
-                            'guest' => $guest->full_name,
-                            'phone' => $guest->phone,
-                            'error' => 'Both WhatsApp and SMS failed',
-                          ];
-                          Log::warning('RSVP SMS fallback also failed for guest: ' . $to);
-                        }
-                      }
+                      Log::info('RSVP SMS sent successfully to guest: ' . $to);
                     } else {
-                      $importResults['sms_errors'][] = [
-                        'guest' => $guest->full_name,
-                        'phone' => $guest->phone,
-                        'error' => "WhatsApp non-recoverable error {$outcome->errorCode}: {$outcome->errorMessage}",
-                      ];
-                      Log::warning("RSVP WhatsApp skipped SMS fallback for guest: {$to} - non-recoverable error {$outcome->errorCode}");
+                      Log::warning('RSVP SMS failed, falling back to WhatsApp for guest: ' . $to);
+                      $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
+                      if ($outcome->success) {
+                        $importResults['sms_sent']++;
+                        Log::info('RSVP WhatsApp fallback sent successfully to guest: ' . $to);
+                      } else {
+                        $importResults['sms_errors'][] = [
+                          'guest' => $guest->full_name,
+                          'phone' => $guest->phone,
+                          'error' => 'Both SMS and WhatsApp failed',
+                        ];
+                        Log::warning('RSVP WhatsApp fallback also failed for guest: ' . $to);
+                      }
                     }
                   } else {
                     $importResults['sms_errors'][] = [

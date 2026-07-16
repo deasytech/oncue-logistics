@@ -54,7 +54,7 @@ class CreateGuest extends CreateRecord
             }
         }
 
-        // Send WhatsApp/SMS invitation if guest has phone number and is attached to events
+        // Send SMS/WhatsApp invitation if guest has phone number and is attached to events
         if ($guest->phone && $guest->events->isNotEmpty()) {
             try {
                 $event = $guest->events->first();
@@ -71,36 +71,30 @@ class CreateGuest extends CreateRecord
                 if ($to && $twilioService->isValidE164($to)) {
                     $meta = ['guest_id' => $guest->id, 'event_id' => $event->id];
 
-                    $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
+                    $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
 
-                    if ($outcome->success) {
+                    if ($smsSuccess) {
                         Notification::make()
                             ->success()
-                            ->title('RSVP WhatsApp Sent')
-                            ->body('An RSVP WhatsApp invitation has been sent to ' . $guest->phone)
+                            ->title('RSVP SMS Sent')
+                            ->body('An RSVP SMS invitation has been sent to ' . $guest->phone)
                             ->send();
-                    } elseif ($outcome->fallbackToSmsRecommended) {
-                        // WhatsApp failed in a way SMS might recover from — try SMS as fallback
-                        $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
-                        if ($smsSuccess) {
+                    } else {
+                        // SMS failed — try WhatsApp as fallback
+                        $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
+                        if ($outcome->success) {
                             Notification::make()
                                 ->success()
-                                ->title('RSVP SMS Sent')
-                                ->body('WhatsApp failed. An RSVP SMS invitation has been sent to ' . $guest->phone)
+                                ->title('RSVP WhatsApp Sent')
+                                ->body('SMS failed. An RSVP WhatsApp invitation has been sent to ' . $guest->phone)
                                 ->send();
                         } else {
                             Notification::make()
                                 ->warning()
                                 ->title('Notification Failed')
-                                ->body('Failed to send RSVP via WhatsApp and SMS to ' . $guest->phone)
+                                ->body("Failed to send RSVP via SMS and WhatsApp to {$guest->phone}: {$outcome->errorMessage} (code {$outcome->errorCode})")
                                 ->send();
                         }
-                    } else {
-                        Notification::make()
-                            ->warning()
-                            ->title('Notification Failed')
-                            ->body("Failed to send RSVP to {$guest->phone}: {$outcome->errorMessage} (code {$outcome->errorCode})")
-                            ->send();
                     }
                 } else {
                     Notification::make()
@@ -113,8 +107,8 @@ class CreateGuest extends CreateRecord
                 // Show error notification if WhatsApp/SMS fails
                 Notification::make()
                     ->warning()
-                    ->title('WhatsApp/SMS Failed')
-                    ->body('Failed to send RSVP WhatsApp/SMS: ' . $e->getMessage())
+                    ->title('SMS/WhatsApp Failed')
+                    ->body('Failed to send RSVP SMS/WhatsApp: ' . $e->getMessage())
                     ->send();
             }
         }

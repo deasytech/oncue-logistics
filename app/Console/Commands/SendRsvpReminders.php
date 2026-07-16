@@ -20,7 +20,7 @@ class SendRsvpReminders extends Command
      *
      * @var string
      */
-    protected $description = 'Send RSVP reminders via WhatsApp and SMS to unconfirmed guests';
+    protected $description = 'Send RSVP reminders via SMS and WhatsApp to unconfirmed guests';
 
     /**
      * Execute the console command.
@@ -61,24 +61,21 @@ class SendRsvpReminders extends Command
             $message = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: " . $rsvpLink;
 
             $meta = ['guest_id' => $guest->id, 'event_id' => $event->id];
-            $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
+            $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
 
             $sent = false;
-            if ($outcome->success) {
+            if ($smsSuccess) {
                 $sent = true;
-                $this->info("WhatsApp reminder sent to {$guest->phone} for event {$event->name}");
-            } elseif ($outcome->fallbackToSmsRecommended) {
-                // WhatsApp failed in a way SMS might recover from — try SMS as fallback
-                $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
-                if ($smsSuccess) {
-                    $sent = true;
-                    $this->info("WhatsApp failed ({$outcome->errorCode}), SMS fallback sent to {$guest->phone} for event {$event->name}");
-                } else {
-                    $this->error("Failed to send to {$guest->phone} for event {$event->name} via WhatsApp and SMS");
-                }
+                $this->info("SMS reminder sent to {$guest->phone} for event {$event->name}");
             } else {
-                // e.g. 21211/63024 - bad number, SMS to the same number won't fare better
-                $this->error("Skipped {$guest->phone} for event {$event->name}: {$outcome->errorMessage} (code {$outcome->errorCode})");
+                // SMS failed — try WhatsApp as fallback
+                $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
+                if ($outcome->success) {
+                    $sent = true;
+                    $this->info("SMS failed, WhatsApp fallback sent to {$guest->phone} for event {$event->name}");
+                } else {
+                    $this->error("Failed to send to {$guest->phone} for event {$event->name} via SMS and WhatsApp: {$outcome->errorMessage} (code {$outcome->errorCode})");
+                }
             }
 
             // Update attempts and last sent timestamp in pivot table if at least one channel succeeded

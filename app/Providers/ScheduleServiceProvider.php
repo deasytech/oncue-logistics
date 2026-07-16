@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Console\Commands\SendRsvpReminders;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +20,6 @@ class ScheduleServiceProvider extends ServiceProvider
      */
     public function boot(Schedule $schedule): void
     {
-        $schedule->command(SendRsvpReminders::class)->dailyAt('08:00');
+        // rsvp:send-reminders is scheduled in routes/console.php
     }
 }
