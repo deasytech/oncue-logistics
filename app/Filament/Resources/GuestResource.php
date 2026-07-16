@@ -154,8 +154,16 @@ class GuestResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('full_name')
-                    ->label('Guest Name')
-                    ->searchable(),
+                    ->label('Name')
+                    ->getStateUsing(
+                        fn($record) => trim(
+                            "{$record->title} {$record->first_name} {$record->last_name}"
+                        )
+                    )
+                    ->searchable([
+                        'first_name',
+                        'last_name',
+                    ]),
 
                 Tables\Columns\TextColumn::make('email')->searchable(),
                 Tables\Columns\TextColumn::make('phone')->searchable(),

@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Poppins')
             ->brandLogo(asset('assets/images/resources/logo.png'))
             ->brandLogoHeight('3rem')
+            ->favicon(asset('assets/images/favicons/favicon-16x16.png'))
             ->sidebarWidth('15rem')
             ->sidebarCollapsibleOnDesktop()
             ->maxContentWidth(MaxWidth::Full)

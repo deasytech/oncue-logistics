@@ -217,7 +217,6 @@ class PackagePaymentResource extends Resource
               }
             })
             ->successNotificationTitle('Payment status updated'),
-          Tables\Actions\DeleteAction::make(),
         ])
       ])
       ->defaultSort('created_at', 'desc');
