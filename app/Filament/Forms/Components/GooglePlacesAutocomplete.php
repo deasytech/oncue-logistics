@@ -72,7 +72,7 @@ class GooglePlacesAutocomplete extends TextInput
       ]);
 
     // Add validation to ensure address is selected from Google Places
-    $this->rules(['required', function (string $attribute, $value, Closure $fail) {
+    $this->rules(['required', fn (): Closure => function (string $attribute, $value, Closure $fail) {
       // Check if the value looks like a valid address (contains common address elements)
       if (empty($value) || strlen($value) < 5) {
         $fail('Please select a valid address from the dropdown.');

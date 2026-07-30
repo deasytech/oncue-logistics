@@ -26664,6 +26664,13 @@ namespace App\Filament\Resources\GuestOrderResource\Pages {
             }
     }
 
+namespace App\Filament\Resources\GuestOrderResource\Widgets {
+    /**
+     */
+    class GuestOrderStats extends \Filament\Widgets\StatsOverviewWidget {
+            }
+    }
+
 namespace App\Filament\Resources\GuestResource\Pages {
     /**
      */
@@ -26882,6 +26889,10 @@ namespace App\Filament\Widgets {
     /**
      */
     class CustomerStatsWidget extends \Filament\Widgets\StatsOverviewWidget {
+            }
+    /**
+     */
+    class EventHeroBannerWidget extends \Filament\Widgets\Widget {
             }
     /**
      */

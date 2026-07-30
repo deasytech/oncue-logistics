@@ -2,12 +2,16 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\GuestOrderExporter;
 use App\Filament\Resources\GuestOrderResource\Pages;
 use App\Models\Event;
 use App\Models\EventGuest;
+use App\Services\TwilioService;
 use Carbon\Carbon;
+use Filament\Actions\Exports\Enums\ExportFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Filament\Infolists\Components\Grid as InfolistGrid;
 use Filament\Infolists\Components\RepeatableEntry;
@@ -17,10 +21,12 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 class GuestOrderResource extends Resource
 {
@@ -116,7 +122,7 @@ class GuestOrderResource extends Resource
                             ->formatStateUsing(fn(?string $state): string => match ($state) {
                                 'confirmed' => 'Confirmed',
                                 'declined'  => 'Declined',
-                                default     => 'Pending',
+                                default     => 'Invited',
                             }),
 
                         TextEntry::make('plus_one')
@@ -145,10 +151,10 @@ class GuestOrderResource extends Resource
                             ->color(fn(?string $state): string => match ($state) {
                                 'paid'    => 'success',
                                 'failed'  => 'danger',
-                                'pending' => 'warning',
+                                'invited' => 'warning',
                                 default   => 'gray',
                             })
-                            ->formatStateUsing(fn(?string $state): string => ucfirst($state ?? 'pending')),
+                            ->formatStateUsing(fn(?string $state): string => ucfirst($state ?? 'invited')),
 
                         TextEntry::make('fabricOrder.payment_method')
                             ->label('Payment Method')
@@ -248,7 +254,7 @@ class GuestOrderResource extends Resource
                     ->formatStateUsing(fn(?string $state): string => match ($state) {
                         'confirmed' => 'Confirmed',
                         'declined'  => 'Declined',
-                        default     => 'Pending',
+                        default     => 'Invited',
                     }),
 
                 Tables\Columns\TextColumn::make('rsvp_responded_at')
@@ -264,7 +270,7 @@ class GuestOrderResource extends Resource
                     $record->fabric_payment_status ?? 'No Order')
                     ->color(fn(string $state): string => match ($state) {
                         'paid'     => 'success',
-                        'pending'  => 'warning',
+                        'invited'  => 'warning',
                         'failed'   => 'danger',
                         default    => 'gray',
                     })
@@ -296,6 +302,11 @@ class GuestOrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('rsvp_created_at', 'desc')
+            ->headerActions([
+                ExportAction::make()
+                    ->exporter(GuestOrderExporter::class)
+                    ->formats([ExportFormat::Csv]),
+            ])
             ->filters([
                 SelectFilter::make('event_id')
                     ->label('Event')
@@ -333,6 +344,70 @@ class GuestOrderResource extends Resource
             ->actions([
                 ActionGroup::make([
                     Tables\Actions\ViewAction::make(),
+                    Tables\Actions\Action::make('resend_rsvp_single')
+                        ->label('Resend RSVP')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Resend RSVP SMS')
+                        ->modalDescription('This will resend the RSVP SMS to this guest. If they were contacted within the last 7 days, the message will still be sent.')
+                        ->modalSubmitActionLabel('Send Now')
+                        ->action(function (EventGuest $record, TwilioService $twilio): void {
+                            $guest = $record->guest;
+                            $event = $record->event;
+
+                            if (! $guest || ! $event || ! $guest->phone) {
+                                Notification::make()
+                                    ->title('Cannot Send')
+                                    ->body('Guest has no phone number on file.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+
+                            $eventDate    = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
+                            $eventName    = $event->name;
+                            $guestName    = $guest->full_name;
+                            $rsvpToken    = $record->rsvp_token;
+                            $customerName = $event->customer?->full_name ?? '';
+                            $rsvpLink     = route('rsvp.show', $rsvpToken);
+                            $message      = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
+                            $meta         = ['guest_id' => $guest->id, 'event_id' => $event->id];
+
+                            $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+
+                            $channelSent = false;
+                            if ($smsSuccess) {
+                                $channelSent = true;
+                            } else {
+                                $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
+                                if ($outcome->success) {
+                                    $channelSent = true;
+                                }
+                            }
+
+                            if ($channelSent) {
+                                DB::table('event_guest')
+                                    ->where('id', $record->getKey())
+                                    ->update([
+                                        'reminder_attempts'     => ($record->reminder_attempts ?? 0) + 1,
+                                        'last_reminder_sent_at' => now(),
+                                    ]);
+
+                                Notification::make()
+                                    ->title('RSVP Sent')
+                                    ->body("RSVP reminder sent to {$guest->phone}.")
+                                    ->success()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title('Failed to Send')
+                                    ->body('Could not deliver via SMS or WhatsApp.')
+                                    ->danger()
+                                    ->send();
+                            }
+                        }),
+
                     Tables\Actions\Action::make('update_rsvp')
                         ->label('Update RSVP')
                         ->icon('heroicon-o-pencil')
@@ -365,7 +440,81 @@ class GuestOrderResource extends Resource
                         ->successNotificationTitle('RSVP status updated'),
                 ]),
             ])
-            ->bulkActions([]);
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('resend_rsvp')
+                    ->label('Resend RSVP SMS')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->modalHeading('Resend RSVP SMS')
+                    ->modalDescription('This will resend RSVP SMS to selected guests who have not responded and were last sent an RSVP more than 7 days ago. Others will be skipped.')
+                    ->modalSubmitActionLabel('Send Now')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records, TwilioService $twilio): void {
+                        $sent = 0;
+                        $skipped = 0;
+
+                        foreach ($records as $record) {
+                            /** @var EventGuest $record */
+                            // Only process guests who haven't responded and were last contacted 7+ days ago
+                            $lastSent = $record->last_reminder_sent_at ?? $record->rsvp_sent_at;
+                            $hasResponded = ! is_null($record->rsvp_responded_at);
+                            $sentRecently = $lastSent && $lastSent->gt(now()->subDays(7));
+
+                            if ($hasResponded || $sentRecently) {
+                                $skipped++;
+                                continue;
+                            }
+
+                            $guest = $record->guest;
+                            $event = $record->event;
+
+                            if (! $guest || ! $event || ! $guest->phone) {
+                                $skipped++;
+                                continue;
+                            }
+
+                            $eventDate   = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
+                            $eventName   = $event->name;
+                            $guestName   = $guest->full_name;
+                            $rsvpToken   = $record->rsvp_token;
+                            $customerName = $event->customer?->full_name ?? '';
+                            $rsvpLink    = route('rsvp.show', $rsvpToken);
+                            $message     = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
+                            $meta        = ['guest_id' => $guest->id, 'event_id' => $event->id];
+
+                            $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+
+                            $channelSent = false;
+                            if ($smsSuccess) {
+                                $channelSent = true;
+                            } else {
+                                $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
+                                if ($outcome->success) {
+                                    $channelSent = true;
+                                }
+                            }
+
+                            if ($channelSent) {
+                                DB::table('event_guest')
+                                    ->where('id', $record->getKey())
+                                    ->update([
+                                        'reminder_attempts'     => ($record->reminder_attempts ?? 0) + 1,
+                                        'last_reminder_sent_at' => now(),
+                                    ]);
+                                $sent++;
+                            } else {
+                                $skipped++;
+                            }
+                        }
+
+                        Notification::make()
+                            ->title('RSVP Reminders Sent')
+                            ->body("{$sent} reminder(s) sent successfully. {$skipped} skipped (already responded, sent recently, or failed).")
+                            ->success()
+                            ->send();
+                    }),
+            ]);
     }
 
     public static function getEloquentQuery(): Builder
