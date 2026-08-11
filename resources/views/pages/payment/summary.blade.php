@@ -42,6 +42,13 @@
                 </div>
 
                 @if ($fabricSelection->delivery_zone_id && $deliveryZone)
+                    @if ($deliveryZone['category_label'] ?? ($deliveryZone['shipping_category'] ?? null))
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Delivery Type:</span>
+                            <span
+                                class="font-medium">{{ $deliveryZone['category_label'] ?? ucfirst(str_replace('_', ' ', $deliveryZone['shipping_category'])) }}</span>
+                        </div>
+                    @endif
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">Shipping Zone:</span>
                         <span

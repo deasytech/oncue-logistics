@@ -60,6 +60,8 @@ class DeliveryZoneService
       foreach ($zonesData as $category) {
         foreach ($category['zones'] as $zone) {
           if ($zone['id'] === $zoneId) {
+            $zone['shipping_category'] = $zone['shipping_category'] ?? ($category['category'] ?? null);
+            $zone['category_label'] = $zone['category_label'] ?? ($category['label'] ?? null);
             return $zone;
           }
         }
@@ -83,7 +85,11 @@ class DeliveryZoneService
   {
     $zone = $this->getZoneById($zoneId);
 
-    return $zone ? (float) $zone['price'] : 0.0;
+    if (!$zone) {
+      return 0.0;
+    }
+
+    return (float) ($zone['effective_price'] ?? $zone['price']);
   }
 
   /**
