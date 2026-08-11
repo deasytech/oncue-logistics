@@ -235,9 +235,12 @@
 
                 <!-- Payment Method Section -->
                 @if ($fabricTypes->count() > 0)
-                    <div class="border-t pt-6 mt-6" data-section="payment-method">
-                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Payment Method</h4>
+                    <div data-section="payment-method">
                         <input type="hidden" name="payment_method" value="online">
+                        {{-- Only one payment method (Paystack/online) exists right now, so there's
+                             nothing for the guest to actually choose — hidden until a second payment
+                             method is added. Re-enable this block at that point.
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Payment Method</h4>
                         <div class="space-y-3">
                             <div class="border border-gray-200 rounded-lg p-4 hover:border-pink-300 transition">
                                 <label class="flex items-center space-x-3 cursor-pointer">
@@ -251,96 +254,100 @@
                                 </label>
                             </div>
                         </div>
+                        --}}
                     </div>
                 @endif
 
                 <!-- Delivery Address Section -->
                 @if ($fabricTypes->count() > 0)
-                <div id="delivery-address-section" class="border-t pt-6 mt-6">
-                    <h4 class="text-lg font-semibold text-gray-800 mb-4">Delivery Address</h4>
-                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
-                        <p class="text-sm text-gray-600 mb-2">Current address:</p>
-                        <p class="font-medium text-gray-800">{{ $deliveryAddress['address'] }}</p>
-                        <p class="text-gray-600">{{ $deliveryAddress['city'] }}, {{ $deliveryAddress['state'] }}</p>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="flex items-center space-x-2">
-                            <input type="checkbox" id="update_address" name="update_address" value="1"
-                                class="text-pink-600 focus:ring-pink-500">
-                            <span class="text-sm font-medium text-gray-700">I want to update my delivery address</span>
-                        </label>
-                    </div>
-
-                    <div id="address_update_fields" class="hidden space-y-4">
-                        <!-- Google Places Address Autocomplete -->
-                        <div>
-                            <label for="delivery_address" class="block font-semibold text-gray-700 mb-1">Street
-                                Address</label>
-                            <input type="text" name="delivery_address" id="delivery_address"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500"
-                                placeholder="Start typing to search for an address..."
-                                value="{{ $deliveryAddress['address'] }}" autocomplete="off">
-                            <p class="mt-1 text-xs text-gray-500">Start typing to search for an address. Select from
-                                the dropdown suggestions.</p>
-
-                            <!-- Hidden fields to capture geocoded latitude/longitude -->
-                            <input type="hidden" name="delivery_latitude" id="delivery_latitude"
-                                value="{{ $guest->latitude ?? '' }}">
-                            <input type="hidden" name="delivery_longitude" id="delivery_longitude"
-                                value="{{ $guest->longitude ?? '' }}">
+                    <div id="delivery-address-section" class="border-t pt-6 mt-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Delivery Address</h4>
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <p class="text-sm text-gray-600 mb-2">Current address:</p>
+                            <p class="font-medium text-gray-800">{{ $deliveryAddress['address'] }}</p>
+                            <p class="text-gray-600">{{ $deliveryAddress['city'] }}, {{ $deliveryAddress['state'] }}
+                            </p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" id="update_address" name="update_address" value="1"
+                                    class="text-pink-600 focus:ring-pink-500">
+                                <span class="text-sm font-medium text-gray-700">I want to update my delivery
+                                    address</span>
+                            </label>
+                        </div>
+
+                        <div id="address_update_fields" class="hidden space-y-4">
+                            <!-- Google Places Address Autocomplete -->
                             <div>
-                                <label for="delivery_state_id"
-                                    class="block font-semibold text-gray-700 mb-1">State</label>
-                                <select name="delivery_state_id" id="delivery_state_id"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
-                                    <option value="">Select state</option>
-                                    @foreach ($states as $state)
-                                        <option value="{{ $state->id }}"
-                                            {{ (string) $selectedStateId === (string) $state->id ? 'selected' : '' }}>
-                                            {{ $state->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label for="delivery_city_id"
-                                    class="block font-semibold text-gray-700 mb-1">City</label>
-                                <select name="delivery_city_id" id="delivery_city_id"
+                                <label for="delivery_address" class="block font-semibold text-gray-700 mb-1">Street
+                                    Address</label>
+                                <input type="text" name="delivery_address" id="delivery_address"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500"
-                                    {{ $selectedStateId ? '' : 'disabled' }}>
-                                    <option value="">Select city</option>
-                                    @foreach ($cities as $city)
-                                        <option value="{{ $city->id }}"
-                                            {{ (string) $selectedCityId === (string) $city->id ? 'selected' : '' }}>
-                                            {{ $city->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                    placeholder="Start typing to search for an address..."
+                                    value="{{ $deliveryAddress['address'] }}" autocomplete="off">
+                                <p class="mt-1 text-xs text-gray-500">Start typing to search for an address. Select
+                                    from
+                                    the dropdown suggestions.</p>
+
+                                <!-- Hidden fields to capture geocoded latitude/longitude -->
+                                <input type="hidden" name="delivery_latitude" id="delivery_latitude"
+                                    value="{{ $guest->latitude ?? '' }}">
+                                <input type="hidden" name="delivery_longitude" id="delivery_longitude"
+                                    value="{{ $guest->longitude ?? '' }}">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="delivery_state_id"
+                                        class="block font-semibold text-gray-700 mb-1">State</label>
+                                    <select name="delivery_state_id" id="delivery_state_id"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500">
+                                        <option value="">Select state</option>
+                                        @foreach ($states as $state)
+                                            <option value="{{ $state->id }}"
+                                                {{ (string) $selectedStateId === (string) $state->id ? 'selected' : '' }}>
+                                                {{ $state->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="delivery_city_id"
+                                        class="block font-semibold text-gray-700 mb-1">City</label>
+                                    <select name="delivery_city_id" id="delivery_city_id"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-pink-500 focus:border-pink-500"
+                                        {{ $selectedStateId ? '' : 'disabled' }}>
+                                        <option value="">Select city</option>
+                                        @foreach ($cities as $city)
+                                            <option value="{{ $city->id }}"
+                                                {{ (string) $selectedCityId === (string) $city->id ? 'selected' : '' }}>
+                                                {{ $city->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Delivery Zone Selection -->
-                    <div class="mt-4">
-                        <label class="block font-semibold text-gray-700 mb-3">
-                            Delivery Method
-                        </label>
+                        <!-- Delivery Zone Selection -->
+                        <div class="mt-4">
+                            <label class="block font-semibold text-gray-700 mb-3">
+                                Delivery Method
+                            </label>
 
-                        <div id="shipping-category-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div id="shipping-category-container" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            </div>
+
+                            <div id="shipping-zone-container" class="mt-4 space-y-3">
+                            </div>
+
+                            <p id="delivery-method-error" class="hidden mt-2 text-sm text-red-600">Please select a
+                                delivery method before continuing.</p>
+
                         </div>
-
-                        <div id="shipping-zone-container" class="mt-4 space-y-3">
-                        </div>
-
-                        <p id="delivery-method-error" class="hidden mt-2 text-sm text-red-600">Please select a
-                            delivery method before continuing.</p>
-
-                    </div>
-                    {{-- <div class="mt-4">
+                        {{-- <div class="mt-4">
                         <label for="delivery_zone_id" class="block font-semibold text-gray-700 mb-1">Delivery
                             Zone</label>
                         <select name="delivery_zone_id" id="delivery_zone_id"
@@ -350,7 +357,7 @@
                         </select>
                         <p class="mt-1 text-xs text-gray-500">Select your preferred delivery zone.</p>
                     </div> --}}
-                </div>
+                    </div>
                 @endif
 
                 <!-- Delivery Zone functionality moved to Package Customizer -->
@@ -359,7 +366,8 @@
                 <div id="rsvp-expiry-section" class="text-sm text-gray-600 border-t pt-4">
                     <p>
                         @if ($rsvp_data->rsvp_expires_at)
-                            RSVP expires: {{ \Carbon\Carbon::parse($rsvp_data->rsvp_expires_at)->format('M d, Y h:i A') }}
+                            RSVP expires:
+                            {{ \Carbon\Carbon::parse($rsvp_data->rsvp_expires_at)->format('M d, Y h:i A') }}
                         @else
                             This RSVP does not expire.
                         @endif
@@ -913,10 +921,11 @@
                     const deliveryAddrSection = document.getElementById('delivery-address-section');
                     const deliveryMethodError = document.getElementById('delivery-method-error');
                     const shippingCategoryContainer = document.getElementById(
-                    'shipping-category-container');
+                        'shipping-category-container');
                     const isDeliveryVisible = deliveryAddrSection && !deliveryAddrSection.classList
                         .contains('hidden');
-                    const selectedFabrics = document.querySelectorAll('input[name="fabric_types[]"]:checked');
+                    const selectedFabrics = document.querySelectorAll(
+                        'input[name="fabric_types[]"]:checked');
                     const hasFabricSelections = selectedFabrics.length > 0;
 
                     if (isDeliveryVisible && hasFabricSelections) {

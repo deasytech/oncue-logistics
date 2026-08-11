@@ -16,7 +16,7 @@ return [
 
   'endpoints' => [
     'orders' => '/api/orders',
-    'zones' => '/api/zones',
+    'zones' => '/api/v1/common/zones',
   ],
 
   'timeout' => 30,

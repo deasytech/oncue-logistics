@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\GuestFabricSelection;
 use App\Mail\GuestOrderConfirmationMail;
 use App\Mail\GuestPaymentReminderMail;
+use App\Jobs\SendGuestOrderToDeliveryMiddleware;
 use App\Services\DeliveryZoneService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -431,134 +432,10 @@ class PaymentController extends Controller
                 'rsvp_responded_at' => now(),
             ]);
 
-        $this->sendOrderToDeliveryMiddleware($fabricSelection);
+        SendGuestOrderToDeliveryMiddleware::dispatch($fabricSelection);
 
         if ($fabricSelection->guest->email) {
             Mail::to($fabricSelection->guest->email)->send(new GuestOrderConfirmationMail($fabricSelection));
-        }
-    }
-
-    /**
-     * Send order to delivery middleware after successful payment
-     */
-    private function sendOrderToDeliveryMiddleware($fabricSelection)
-    {
-        try {
-            $guest = $fabricSelection->guest;
-            $event = $fabricSelection->event;
-
-            // Prepare order data according to the expected format
-            $orderData = [
-                'external_order_id' => 'RSVP-' . $fabricSelection->id . '-' . time(),
-                'zone_id' => $fabricSelection->delivery_zone_id ?? 2, // Default to zone 2 if not specified
-
-                'customer_name' => $guest->full_name,
-                'customer_email' => $guest->email,
-                'customer_phone' => $guest->phone,
-
-                'street_address' => $guest->address ?? 'No address provided',
-                'city' => $guest->city?->name ?? 'Lagos',
-                'state' => $guest->state?->name ?? 'Lagos',
-                'latitude' => $guest->latitude ?? null,
-                'longitude' => $guest->longitude ?? null,
-
-                'order_amount' => (int) $fabricSelection->total_amount, // Amount is already in kobo format
-
-                'items' => []
-            ];
-
-            // Add fabric items to the order
-            foreach ($fabricSelection->fabric_selections as $fabric) {
-                $orderData['items'][] = [
-                    'name' => $fabric['name'],
-                    'quantity' => $fabric['quantity'] ?? 1,
-                    'price' => (int) $fabric['price'] // Price is already in the correct format (kobo)
-                ];
-            }
-
-            // Note: Delivery service is NOT added as a separate item to the order items array
-            // as requested. The delivery cost is already included in the total_amount field.
-
-            // Send the order to the external endpoint
-            $apiUrl = config('delivery.middleware_url') . config('delivery.endpoints.orders');
-            $apiKey = config('delivery.middleware_api_key');
-
-            Log::info('Delivery middleware URL', [
-                'url' => $apiUrl,
-            ]);
-
-            $response = Http::timeout(config('delivery.timeout'))
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'X-API-KEY' => $apiKey,
-                ])
-                ->post($apiUrl, $orderData);
-
-            $contentType = $response->header('Content-Type');
-
-            Log::info('Delivery middleware API response', [
-                'fabric_selection_id' => $fabricSelection->id,
-                'request_url' => $apiUrl,
-                'method' => 'POST',
-
-                'status' => $response->status(),
-
-                'successful' => $response->successful(),
-
-                'redirect' => $response->redirect(),
-
-                'content_type' => $response->header('Content-Type'),
-
-                'server' => $response->header('Server'),
-
-                'location' => $response->header('Location'),
-
-                'headers' => $response->headers(),
-
-                'body' => $response->body(),
-            ]);
-
-            // Ensure the response is JSON before decoding
-            if (! str_contains($contentType ?? '', 'application/json')) {
-
-                Log::error('Delivery middleware returned non-JSON response', [
-                    'fabric_selection_id' => $fabricSelection->id,
-                    'status' => $response->status(),
-                    'content_type' => $contentType,
-                    'url' => $apiUrl,
-                    'body' => substr($response->body(), 0, 5000),
-                ]);
-
-                return;
-            }
-
-            $responseData = $response->json();
-
-            if ($response->successful() && isset($responseData['order_id'])) {
-
-                $fabricSelection->update([
-                    'external_order_id' => $responseData['order_id'],
-                ]);
-
-                Log::info('Order successfully sent to delivery middleware', [
-                    'fabric_selection_id' => $fabricSelection->id,
-                    'external_order_id' => $responseData['order_id'],
-                ]);
-            } else {
-
-                Log::error('Delivery middleware returned an unexpected JSON response', [
-                    'fabric_selection_id' => $fabricSelection->id,
-                    'status' => $response->status(),
-                    'response' => $responseData,
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Exception occurred while sending order to delivery middleware', [
-                'fabric_selection_id' => $fabricSelection->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 

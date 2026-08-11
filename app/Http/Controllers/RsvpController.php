@@ -94,13 +94,18 @@ class RsvpController extends Controller
             $request->merge(['fabric_purchase_interest' => 'no']);
         }
 
+        // Delivery zone is required whenever the guest has selected fabric, mirroring
+        // the frontend validation in resources/views/pages/rsvp/form.blade.php which
+        // only shows/requires the delivery zone selector once a fabric is selected.
+        $hasFabricTypesSelected = is_array($request->input('fabric_types')) && count($request->input('fabric_types')) > 0;
+
         // Validation rules
         $rules = [
             'attendance_status' => 'required|in:confirmed,declined',
             'plus_one' => ['nullable', 'string', 'max:100', 'regex:/^[\p{L}\s\'\-]+$/u'],
             'fabric_types' => 'nullable|array',
             'fabric_types.*' => 'exists:fabric_types,id',
-            'delivery_zone_id' => 'nullable|integer',
+            'delivery_zone_id' => [Rule::requiredIf($hasFabricTypesSelected), 'nullable', 'integer'],
             'payment_method' => 'nullable|in:online',
             'update_address' => 'nullable|boolean',
             'delivery_address' => 'required_if:update_address,1|string|max:500',
