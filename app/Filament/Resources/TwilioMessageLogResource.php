@@ -186,16 +186,23 @@ class TwilioMessageLogResource extends Resource
                             ];
 
                             $success = match ($record->channel) {
-                                'whatsapp_template' => $service->sendWhatsAppTemplate(
-                                    $record->to,
-                                    $payload['guest_name'] ?? '',
-                                    $payload['event_name'] ?? '',
-                                    $payload['event_date'] ?? '',
-                                    $payload['rsvp_token'] ?? '',
-                                    $payload['customer_name'] ?? '',
-                                    $record->context ?? 'retry',
-                                    $meta,
-                                )->success,
+                                'whatsapp_template' => $record->content_sid === config('services.twilio.bulk_message_template_sid')
+                                    ? $service->sendWhatsAppBulkMessageTemplate(
+                                        $record->to,
+                                        $payload['first_name'] ?? '',
+                                        $record->context ?? 'retry',
+                                        $meta,
+                                    )->success
+                                    : $service->sendWhatsAppTemplate(
+                                        $record->to,
+                                        $payload['guest_name'] ?? '',
+                                        $payload['event_name'] ?? '',
+                                        $payload['event_date'] ?? '',
+                                        $payload['rsvp_token'] ?? '',
+                                        $payload['customer_name'] ?? '',
+                                        $record->context ?? 'retry',
+                                        $meta,
+                                    )->success,
                                 'whatsapp' => $service->sendWhatsApp(
                                     $record->to,
                                     $payload['message'] ?? '',

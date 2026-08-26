@@ -52,6 +52,7 @@ return [
         'sender_id' => env('TWILIO_SENDER_ID'),
         'default_country_code' => env('TWILIO_DEFAULT_COUNTRY_CODE', '234'),
         'rsvp_template_sid' => env('TWILIO_RSVP_TEMPLATE_SID'),
+        'bulk_message_template_sid' => env('TWILIO_BULK_MESSAGE_TEMPLATE_SID'),
         // WhatsApp caps throughput at 80 msg/sec per sender by default; we throttle well
         // under that since this app never needs to approach the ceiling.
         'whatsapp_mps' => env('TWILIO_WHATSAPP_MPS', 5),

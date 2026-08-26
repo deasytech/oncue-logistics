@@ -276,6 +276,53 @@ class TwilioService
   }
 
   /**
+   * Send a WhatsApp message using the bulk-message Twilio Content Template
+   * (a separate template from the RSVP one, since it carries different copy
+   * and only needs the guest's first name as a variable).
+   *
+   * @param string $to The recipient phone number
+   * @param string $firstName Guest first name for variable 1
+   * @param string $context Label for what triggered this send (e.g. bulk_message) — stored for metrics
+   */
+  public function sendWhatsAppBulkMessageTemplate(
+    string $to,
+    string $firstName,
+    string $context = 'bulk_message',
+    array $meta = []
+  ): SendOutcome {
+    if (!$this->client || empty($this->whatsappFromNumber)) {
+      Log::warning('Twilio WhatsApp bulk template not sent: client not initialized or WhatsApp FROM number missing.');
+      return SendOutcome::failed(null, 'Client not initialized or WhatsApp FROM missing.');
+    }
+
+    $contentSid = config('services.twilio.bulk_message_template_sid');
+    if (empty($contentSid)) {
+      Log::warning('Twilio WhatsApp bulk template not sent: bulk_message_template_sid not configured.');
+      return SendOutcome::failed(null, 'bulk_message_template_sid not configured.');
+    }
+
+    $formatted = $this->formatE164($to);
+    if (!$formatted || !$this->isValidE164($formatted)) {
+      Log::warning('Twilio WhatsApp bulk template not sent: invalid phone number.', ['to' => $to]);
+      $this->logAttempt('whatsapp_template', $to, $contentSid, 'failed', null, 'Invalid phone number format', $context, $meta, 21211);
+      return SendOutcome::failed(21211, 'Invalid phone number format', fallbackToSmsRecommended: false);
+    }
+
+    $params = [
+      'contentSid' => $contentSid,
+      'contentVariables' => json_encode([
+        '1' => $firstName,
+      ]),
+    ];
+
+    $payload = [
+      'first_name' => $firstName,
+    ];
+
+    return $this->dispatchWhatsApp($formatted, $params, $contentSid, 'whatsapp_template', $context, $meta, payload: $payload);
+  }
+
+  /**
    * Shared send path for both free-form and template WhatsApp messages:
    * throttles to stay under WhatsApp's per-sender throughput limit, retries
    * once on rate-limit errors, and classifies the remaining Twilio error
