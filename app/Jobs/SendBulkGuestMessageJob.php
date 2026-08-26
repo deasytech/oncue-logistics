@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Mail\NewsletterMail;
+use App\Mail\BulkGuestMessageMail;
 use App\Models\BulkMessage;
 use App\Models\BulkMessageDelivery;
 use App\Models\Guest;
@@ -79,7 +79,7 @@ class SendBulkGuestMessageJob implements ShouldQueue
         }
 
         try {
-            Mail::to($guest->email)->queue(new NewsletterMail(
+            Mail::to($guest->email)->queue(new BulkGuestMessageMail(
                 $bulkMessage->title,
                 $this->personalize($bulkMessage->body, $guest),
             ));

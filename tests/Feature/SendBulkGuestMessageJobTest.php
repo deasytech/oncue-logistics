@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendBulkGuestMessageJob;
-use App\Mail\NewsletterMail;
+use App\Mail\BulkGuestMessageMail;
 use App\Models\BulkMessage;
 use App\Models\BulkMessageDelivery;
 use App\Models\Customer;
@@ -33,10 +33,10 @@ class SendBulkGuestMessageJobTest extends TestCase
 
         (new SendBulkGuestMessageJob($bulkMessage->id, $guest->id))->handle(app(\App\Services\TwilioService::class));
 
-        Mail::assertQueued(NewsletterMail::class, function (NewsletterMail $mail) use ($guest) {
+        Mail::assertQueued(BulkGuestMessageMail::class, function (BulkGuestMessageMail $mail) use ($guest) {
             return $mail->hasTo($guest->email)
-                && $mail->subject === 'Feedback Survey'
-                && str_contains($mail->content, 'Hello Ada!');
+                && $mail->title === 'Feedback Survey'
+                && str_contains($mail->body, 'Hello Ada!');
         });
 
         $delivery = BulkMessageDelivery::where('bulk_message_id', $bulkMessage->id)

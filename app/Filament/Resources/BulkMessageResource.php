@@ -5,7 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BulkMessageResource\Pages;
 use App\Filament\Resources\BulkMessageResource\RelationManagers\DeliveriesRelationManager;
 use App\Jobs\SendBulkGuestMessageJob;
-use App\Mail\NewsletterMail;
+use App\Mail\BulkGuestMessageMail;
 use App\Models\BulkMessage;
 use App\Models\Customer;
 use App\Models\Event;
@@ -240,7 +240,7 @@ class BulkMessageResource extends Resource
 
         if ($sendTest && in_array('email', $channels, true)) {
             try {
-                Mail::to(filament()->auth()->user()->email)->send(new NewsletterMail(
+                Mail::to(filament()->auth()->user()->email)->send(new BulkGuestMessageMail(
                     $data['title'],
                     str_ireplace('{{first_name}}', 'Guest', $data['body']),
                 ));
