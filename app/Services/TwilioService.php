@@ -277,16 +277,17 @@ class TwilioService
 
   /**
    * Send a WhatsApp message using the bulk-message Twilio Content Template
-   * (a separate template from the RSVP one, since it carries different copy
-   * and only needs the guest's first name as a variable).
+   * (a separate template from the RSVP one, since it carries different copy).
    *
    * @param string $to The recipient phone number
    * @param string $firstName Guest first name for variable 1
+   * @param string $content Message content for variable 2
    * @param string $context Label for what triggered this send (e.g. bulk_message) — stored for metrics
    */
   public function sendWhatsAppBulkMessageTemplate(
     string $to,
     string $firstName,
+    string $content,
     string $context = 'bulk_message',
     array $meta = []
   ): SendOutcome {
@@ -312,11 +313,13 @@ class TwilioService
       'contentSid' => $contentSid,
       'contentVariables' => json_encode([
         '1' => $firstName,
+        '2' => $content,
       ]),
     ];
 
     $payload = [
       'first_name' => $firstName,
+      'content' => $content,
     ];
 
     return $this->dispatchWhatsApp($formatted, $params, $contentSid, 'whatsapp_template', $context, $meta, payload: $payload);

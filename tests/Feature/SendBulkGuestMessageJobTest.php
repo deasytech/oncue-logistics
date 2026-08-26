@@ -8,8 +8,11 @@ use App\Models\BulkMessage;
 use App\Models\BulkMessageDelivery;
 use App\Models\Customer;
 use App\Models\Guest;
+use App\Services\Twilio\SendOutcome;
+use App\Services\TwilioService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Mockery;
 use Tests\TestCase;
 
 class SendBulkGuestMessageJobTest extends TestCase
@@ -101,5 +104,40 @@ class SendBulkGuestMessageJobTest extends TestCase
         (new SendBulkGuestMessageJob($bulkMessage->id, $guest->id))->handle(app(\App\Services\TwilioService::class));
 
         Mail::assertNothingQueued();
+    }
+
+    public function test_whatsapp_channel_sends_first_name_and_personalized_content_as_template_variables(): void
+    {
+        $customer = Customer::factory()->create();
+        $guest = Guest::factory()->create(['customer_id' => $customer->id, 'first_name' => 'Ada', 'phone' => '+2348012345678']);
+
+        $bulkMessage = BulkMessage::create([
+            'customer_id' => $customer->id,
+            'title' => 'Feedback Survey',
+            'body' => '<p>Hello {{first_name}}! Thanks for coming.</p>',
+            'channels' => ['whatsapp'],
+            'total_recipients' => 1,
+        ]);
+
+        $twilio = Mockery::mock(TwilioService::class);
+        $twilio->shouldReceive('sendWhatsAppBulkMessageTemplate')
+            ->once()
+            ->with(
+                $guest->phone,
+                'Ada',
+                'Hello Ada! Thanks for coming.',
+                'bulk_message',
+                ['guest_id' => $guest->id],
+            )
+            ->andReturn(SendOutcome::ok('SMtest'));
+
+        (new SendBulkGuestMessageJob($bulkMessage->id, $guest->id))->handle($twilio);
+
+        $delivery = BulkMessageDelivery::where('bulk_message_id', $bulkMessage->id)
+            ->where('guest_id', $guest->id)
+            ->where('channel', 'whatsapp')
+            ->first();
+
+        $this->assertSame('sent', $delivery->status);
     }
 }

@@ -190,6 +190,7 @@ class TwilioMessageLogResource extends Resource
                                     ? $service->sendWhatsAppBulkMessageTemplate(
                                         $record->to,
                                         $payload['first_name'] ?? '',
+                                        $payload['content'] ?? '',
                                         $record->context ?? 'retry',
                                         $meta,
                                     )->success

@@ -60,7 +60,7 @@ class SendBulkGuestMessageJob implements ShouldQueue
             match ($channel) {
                 'email' => $this->sendEmail($delivery, $guest, $bulkMessage),
                 'sms' => $this->sendSms($delivery, $guest, $bulkMessage, $twilio),
-                'whatsapp' => $this->sendWhatsapp($delivery, $guest, $twilio),
+                'whatsapp' => $this->sendWhatsapp($delivery, $guest, $bulkMessage, $twilio),
                 default => $delivery->update(['status' => 'skipped', 'error_message' => "Unknown channel: {$channel}"]),
             };
         }
@@ -107,14 +107,16 @@ class SendBulkGuestMessageJob implements ShouldQueue
             : ['status' => 'failed', 'error_message' => 'SMS send failed — see WhatsApp/SMS Logs for details.']);
     }
 
-    protected function sendWhatsapp(BulkMessageDelivery $delivery, Guest $guest, TwilioService $twilio): void
+    protected function sendWhatsapp(BulkMessageDelivery $delivery, Guest $guest, BulkMessage $bulkMessage, TwilioService $twilio): void
     {
         if (empty($guest->phone)) {
             $delivery->update(['status' => 'skipped', 'error_message' => 'Guest has no phone on file.']);
             return;
         }
 
-        $outcome = $twilio->sendWhatsAppBulkMessageTemplate($guest->phone, $guest->first_name, 'bulk_message', ['guest_id' => $guest->id]);
+        $plainTextContent = $this->htmlToPlainText($this->personalize($bulkMessage->body, $guest));
+
+        $outcome = $twilio->sendWhatsAppBulkMessageTemplate($guest->phone, $guest->first_name, $plainTextContent, 'bulk_message', ['guest_id' => $guest->id]);
 
         $delivery->update($outcome->success
             ? ['status' => 'sent', 'sent_at' => now()]

@@ -217,7 +217,7 @@ class BulkMessageResource extends Resource
                     'h3',
                     'blockquote',
                 ])
-                ->helperText("Applies to Email and SMS. WhatsApp uses your separately configured Twilio template — this text isn't sent to WhatsApp recipients.")
+                ->helperText("Sent as the email body and as SMS text. For WhatsApp, this content is passed into your approved Twilio template as its second variable (the first is the guest's first name) — the template's surrounding wording still comes from Twilio, not from this text.")
                 ->hintAction(
                     FormAction::make('insertFirstName')
                         ->label('Insert first name')
