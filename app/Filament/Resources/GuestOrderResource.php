@@ -374,14 +374,14 @@ class GuestOrderResource extends Resource
                             $message      = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
                             $meta         = ['guest_id' => $guest->id, 'event_id' => $event->id];
 
-                            $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+                            $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
 
                             $channelSent = false;
-                            if ($smsSuccess) {
+                            if ($outcome->success) {
                                 $channelSent = true;
-                            } else {
-                                $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
-                                if ($outcome->success) {
+                            } elseif ($outcome->fallbackToSmsRecommended) {
+                                $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+                                if ($smsSuccess) {
                                     $channelSent = true;
                                 }
                             }
@@ -402,7 +402,7 @@ class GuestOrderResource extends Resource
                             } else {
                                 Notification::make()
                                     ->title('Failed to Send')
-                                    ->body('Could not deliver via SMS or WhatsApp.')
+                                    ->body('Could not deliver via WhatsApp or SMS.')
                                     ->danger()
                                     ->send();
                             }
@@ -483,14 +483,14 @@ class GuestOrderResource extends Resource
                             $message     = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
                             $meta        = ['guest_id' => $guest->id, 'event_id' => $event->id];
 
-                            $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+                            $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
 
                             $channelSent = false;
-                            if ($smsSuccess) {
+                            if ($outcome->success) {
                                 $channelSent = true;
-                            } else {
-                                $outcome = $twilio->sendWhatsAppTemplate($guest->phone, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_reminder', $meta);
-                                if ($outcome->success) {
+                            } elseif ($outcome->fallbackToSmsRecommended) {
+                                $smsSuccess = $twilio->sendSms($guest->phone, $message, 'rsvp_reminder', $meta);
+                                if ($smsSuccess) {
                                     $channelSent = true;
                                 }
                             }

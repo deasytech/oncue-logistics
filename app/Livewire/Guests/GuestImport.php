@@ -315,25 +315,32 @@ class GuestImport extends Component
                     $customerName = $guest->customer?->full_name ?? 'our host';
                     $meta = ['guest_id' => $guest->id, 'event_id' => $rowEventId];
 
-                    $smsSuccess = $smsMessage ? $twilioService->sendSms($to, $smsMessage, 'rsvp_invite', $meta) : false;
+                    $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
 
-                    if ($smsSuccess) {
+                    if ($outcome->success) {
                       $importResults['sms_sent']++;
-                      Log::info('RSVP SMS sent successfully to guest: ' . $to);
-                    } else {
-                      Log::warning('RSVP SMS failed, falling back to WhatsApp for guest: ' . $to);
-                      $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
-                      if ($outcome->success) {
+                      Log::info('RSVP WhatsApp sent successfully to guest: ' . $to);
+                    } elseif ($outcome->fallbackToSmsRecommended) {
+                      Log::warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                      $smsSuccess = $smsMessage ? $twilioService->sendSms($to, $smsMessage, 'rsvp_invite', $meta) : false;
+                      if ($smsSuccess) {
                         $importResults['sms_sent']++;
-                        Log::info('RSVP WhatsApp fallback sent successfully to guest: ' . $to);
+                        Log::info('RSVP SMS fallback sent successfully to guest: ' . $to);
                       } else {
                         $importResults['sms_errors'][] = [
                           'guest' => $guest->full_name,
                           'phone' => $guest->phone,
-                          'error' => 'Both SMS and WhatsApp failed',
+                          'error' => 'Both WhatsApp and SMS failed',
                         ];
-                        Log::warning('RSVP WhatsApp fallback also failed for guest: ' . $to);
+                        Log::warning('RSVP SMS fallback also failed for guest: ' . $to);
                       }
+                    } else {
+                      $importResults['sms_errors'][] = [
+                        'guest' => $guest->full_name,
+                        'phone' => $guest->phone,
+                        'error' => 'WhatsApp failed: ' . ($outcome->errorMessage ?? 'unknown error'),
+                      ];
+                      Log::warning("RSVP WhatsApp failed for guest: {$to} - {$outcome->errorMessage} (code {$outcome->errorCode})");
                     }
                   } else {
                     $importResults['sms_errors'][] = [

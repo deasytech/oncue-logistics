@@ -132,18 +132,20 @@ class GuestImporter extends Importer
                         if ($to && $twilioService->isValidE164($to)) {
                             $meta = ['guest_id' => $guest->id, 'event_id' => $eventId];
 
-                            $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
+                            $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
 
-                            if ($smsSuccess) {
-                                logger()->info('RSVP SMS sent successfully to guest: ' . $to);
-                            } else {
-                                logger()->warning('RSVP SMS failed, falling back to WhatsApp for guest: ' . $to);
-                                $outcome = $twilioService->sendWhatsAppTemplate($to, $guestName, $eventName, $eventDate, $rsvpToken, $customerName, 'rsvp_invite', $meta);
-                                if ($outcome->success) {
-                                    logger()->info('RSVP WhatsApp fallback sent successfully to guest: ' . $to);
+                            if ($outcome->success) {
+                                logger()->info('RSVP WhatsApp sent successfully to guest: ' . $to);
+                            } elseif ($outcome->fallbackToSmsRecommended) {
+                                logger()->warning('RSVP WhatsApp failed, falling back to SMS for guest: ' . $to);
+                                $smsSuccess = $twilioService->sendSms($to, $message, 'rsvp_invite', $meta);
+                                if ($smsSuccess) {
+                                    logger()->info('RSVP SMS fallback sent successfully to guest: ' . $to);
                                 } else {
-                                    logger()->warning("RSVP WhatsApp fallback also failed for guest: {$to} - {$outcome->errorMessage} (code {$outcome->errorCode})");
+                                    logger()->warning('RSVP SMS fallback also failed for guest: ' . $to);
                                 }
+                            } else {
+                                logger()->warning("RSVP WhatsApp failed for guest: {$to} - {$outcome->errorMessage} (code {$outcome->errorCode})");
                             }
                         } else {
                             logger()->warning('Skipped RSVP notification: invalid/unformattable phone for guest: ' . $guest->phone);
