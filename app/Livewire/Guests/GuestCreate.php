@@ -187,7 +187,7 @@ class GuestCreate extends Component
                     $rsvpLink = route('rsvp.show', $rsvpToken);
                     $eventName = $event->name ?? 'our event';
                     $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
-                    $guestName = $guestForEvent->title . ' ' . $guestForEvent->first_name;
+                    $guestName = $guestForEvent->title . ' ' . $guestForEvent->last_name;
                     $customerName = $guestForEvent->customer->full_name ?? 'our customer';
                     $message = "Hi, {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 

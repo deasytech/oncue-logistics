@@ -311,7 +311,7 @@ class GuestImport extends Component
                   $twilioService = app(TwilioService::class);
                   $to = $twilioService->formatE164($guest->phone);
                   if ($to && $twilioService->isValidE164($to)) {
-                    $guestName = trim($guest->title . ' ' . $guest->first_name);
+                    $guestName = trim($guest->title . ' ' . $guest->last_name);
                     $customerName = $guest->customer?->full_name ?? 'our host';
                     $meta = ['guest_id' => $guest->id, 'event_id' => $rowEventId];
 
