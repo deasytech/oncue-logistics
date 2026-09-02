@@ -13,7 +13,7 @@
             <h1>You're Invited!</h1>
         </div>
         <div style="padding: 20px;">
-            <p>Hello {{ $guest->full_name }},</p>
+            <p>Dear {{ $guest->full_name }},</p>
             <p>You have been invited to the upcoming event
                 <strong>"{{ $guest->events->first()->name ?? 'our special event' }}"</strong> on
                 {{ $guest->events->first()->event_date?->format('F j, Y') ?? 'To be announced' }}.
