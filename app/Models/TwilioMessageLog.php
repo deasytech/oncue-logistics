@@ -50,6 +50,6 @@ class TwilioMessageLog extends Model
 
     public function isRetryable(): bool
     {
-        return $this->status === 'failed' && !empty($this->payload) && in_array($this->channel, ['sms', 'whatsapp', 'whatsapp_template'], true);
+        return in_array($this->status, ['failed', 'undelivered'], true) && !empty($this->payload) && in_array($this->channel, ['sms', 'whatsapp', 'whatsapp_template'], true);
     }
 }

@@ -394,9 +394,7 @@ class TwilioService
         );
       }
 
-      // 21211 (malformed 'To') and 63024 (invalid/unreachable WhatsApp recipient) are
-      // terminal for this number — don't burn an SMS attempt on the same bad number.
-      $fallbackToSmsRecommended = !in_array($code, [21211, 63024], true);
+      $fallbackToSmsRecommended = $this->isSmsFallbackRecommendedForError($code);
 
       $this->logAttempt($channel, $to, $contentSid, 'failed', null, $e->getMessage(), $context, $meta, $code, $payload);
 
@@ -438,6 +436,23 @@ class TwilioService
     if ($waitMicros > 0) {
       usleep($waitMicros);
     }
+  }
+
+  /**
+   * Whether a WhatsApp failure with the given Twilio error code is worth
+   * retrying over SMS. 21211 (malformed 'To') and 63024 (invalid/unreachable
+   * WhatsApp recipient) are terminal for this number — an SMS to the same
+   * number would fail the same way, so don't burn an attempt on it.
+   *
+   * Shared by the synchronous failure path in dispatchWhatsApp() and by
+   * TwilioStatusWebhookController, which applies the same rule to failures
+   * that only become known later via Twilio's async delivery-status callback
+   * (e.g. 63049/63021, where the initial API call succeeds and the rejection
+   * arrives after the caller has already moved on).
+   */
+  public function isSmsFallbackRecommendedForError(?int $errorCode): bool
+  {
+    return !in_array($errorCode, [21211, 63024], true);
   }
 
   /**
