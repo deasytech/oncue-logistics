@@ -54,7 +54,7 @@ class SendRsvpReminders extends Command
             $pivot = $event->pivot;
             $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
             $eventName = $event->name;
-            $guestName = $guest->full_name;
+            $guestName = trim($guest->title . ' ' . $guest->last_name);
             $rsvpToken = $pivot->rsvp_token;
             $customerName = $event->customer->full_name;
             $rsvpLink = route('rsvp.show', $rsvpToken);

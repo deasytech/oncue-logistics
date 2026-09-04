@@ -62,7 +62,7 @@ class CreateGuest extends CreateRecord
                 $rsvpLink = route('rsvp.show', $rsvpToken);
                 $eventName = $event->name ?? 'our event';
                 $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
-                $guestName = $guest->full_name;
+                $guestName = trim($guest->title . ' ' . $guest->last_name);
                 $customerName = $guest->customer->full_name ?? 'our customer';
                 $message = "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 

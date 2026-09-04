@@ -367,7 +367,7 @@ class GuestOrderResource extends Resource
 
                             $eventDate    = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                             $eventName    = $event->name;
-                            $guestName    = $guest->full_name;
+                            $guestName    = trim($guest->title . ' ' . $guest->last_name);
                             $rsvpToken    = $record->rsvp_token;
                             $customerName = $event->customer?->full_name ?? '';
                             $rsvpLink     = route('rsvp.show', $rsvpToken);
@@ -476,7 +476,7 @@ class GuestOrderResource extends Resource
 
                             $eventDate   = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                             $eventName   = $event->name;
-                            $guestName   = $guest->full_name;
+                            $guestName   = trim($guest->title . ' ' . $guest->last_name);
                             $rsvpToken   = $record->rsvp_token;
                             $customerName = $event->customer?->full_name ?? '';
                             $rsvpLink    = route('rsvp.show', $rsvpToken);
