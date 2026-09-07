@@ -6,6 +6,7 @@ use App\Filament\Exports\GuestOrderExporter;
 use App\Filament\Resources\GuestOrderResource\Pages;
 use App\Models\Event;
 use App\Models\EventGuest;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Carbon\Carbon;
 use Filament\Actions\Exports\Enums\ExportFormat;
@@ -370,7 +371,7 @@ class GuestOrderResource extends Resource
                             $guestName    = trim($guest->title . ' ' . $guest->last_name);
                             $rsvpToken    = $record->rsvp_token;
                             $customerName = $event->customer?->full_name ?? '';
-                            $rsvpLink     = route('rsvp.show', $rsvpToken);
+                            $rsvpLink     = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
                             $message      = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
                             $meta         = ['guest_id' => $guest->id, 'event_id' => $event->id];
 
@@ -479,7 +480,7 @@ class GuestOrderResource extends Resource
                             $guestName   = trim($guest->title . ' ' . $guest->last_name);
                             $rsvpToken   = $record->rsvp_token;
                             $customerName = $event->customer?->full_name ?? '';
-                            $rsvpLink    = route('rsvp.show', $rsvpToken);
+                            $rsvpLink    = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
                             $message     = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}";
                             $meta        = ['guest_id' => $guest->id, 'event_id' => $event->id];
 

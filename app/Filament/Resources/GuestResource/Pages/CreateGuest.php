@@ -4,6 +4,7 @@ namespace App\Filament\Resources\GuestResource\Pages;
 
 use App\Filament\Resources\GuestResource;
 use App\Mail\GuestRsvpInviteMail;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -59,7 +60,7 @@ class CreateGuest extends CreateRecord
             try {
                 $event = $guest->events->first();
                 $rsvpToken = $event->pivot->rsvp_token;
-                $rsvpLink = route('rsvp.show', $rsvpToken);
+                $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
                 $eventName = $event->name ?? 'our event';
                 $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                 $guestName = trim($guest->title . ' ' . $guest->last_name);

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Mail\GuestRsvpInviteMail;
 use Illuminate\Support\Facades\Mail;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Illuminate\Support\Facades\Http;
 
@@ -184,12 +185,12 @@ class GuestCreate extends Component
 
                     $event = $guestForEvent->events->first();
                     $rsvpToken = $event->pivot->rsvp_token;
-                    $rsvpLink = route('rsvp.show', $rsvpToken);
+                    $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
                     $eventName = $event->name ?? 'our event';
                     $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                     $guestName = $guestForEvent->title . ' ' . $guestForEvent->last_name;
                     $customerName = $guestForEvent->customer->full_name ?? 'our customer';
-                    $message = "Hi, {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
+                    $message = "Dear {$guestName}, You have been invited to the upcoming event {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 
                     if ($guestForEvent->email) {
                         try {

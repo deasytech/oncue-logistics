@@ -5,6 +5,7 @@ namespace App\Livewire\Guests;
 use App\Models\Customer;
 use App\Models\Event;
 use App\Models\Guest;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -282,11 +283,11 @@ class GuestImport extends Component
             if ($sendNotifications && ($guest->email || $guest->phone)) {
               $event = $guest->events->first();
               $rsvpToken = $event?->pivot?->rsvp_token;
-              $rsvpLink = $rsvpToken ? route('rsvp.show', $rsvpToken) : null;
+              $rsvpLink = $rsvpToken ? app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken)) : null;
               $eventName = $event?->name ?? 'our event';
               $eventDate = $event?->event_date?->format('F j, Y') ?? 'Date: TBA';
               $smsMessage = $rsvpLink
-                ? "Hi, {$guest->title} {$guest->first_name}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}"
+                ? "Dear {$guest->title} {$guest->last_name}, You have been invited to the upcoming event {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}"
                 : null;
 
               if ($guest->email) {

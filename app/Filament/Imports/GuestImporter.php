@@ -5,6 +5,7 @@ namespace App\Filament\Imports;
 use App\Mail\GuestRsvpInviteMail;
 use App\Models\Event;
 use App\Models\Guest;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
@@ -105,7 +106,7 @@ class GuestImporter extends Importer
                 }]);
 
                 $event = $guest->events->first();
-                $rsvpLink = route('rsvp.show', $rsvpToken);
+                $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
                 $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                 $eventName = $event->name ?? 'our event';
                 $guestName = trim($guest->title . ' ' . $guest->last_name);

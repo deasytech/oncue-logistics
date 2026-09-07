@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Guest;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Illuminate\Console\Command;
 
@@ -57,7 +58,7 @@ class SendRsvpReminders extends Command
             $guestName = trim($guest->title . ' ' . $guest->last_name);
             $rsvpToken = $pivot->rsvp_token;
             $customerName = $event->customer->full_name;
-            $rsvpLink = route('rsvp.show', $rsvpToken);
+            $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
             $message = "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: " . $rsvpLink;
 
             $meta = ['guest_id' => $guest->id, 'event_id' => $event->id];

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\TwilioMessageLog;
+use App\Services\TinyUrlService;
 use App\Services\TwilioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -123,7 +124,7 @@ class TwilioStatusWebhookController extends Controller
             return;
         }
 
-        $rsvpLink = route('rsvp.show', $rsvpToken);
+        $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
         $message = $log->context === 'rsvp_reminder'
             ? "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}"
             : "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
