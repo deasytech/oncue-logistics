@@ -25,7 +25,7 @@ class SendSampleEventSms extends Command
     $guestName = 'John Doe';
     $sampleRsvpLink = 'https://oncue.test/rsvp/a1b2c3d4e5f6';
 
-    $message = "Hi {$guestName}, you're invited to {$eventName}. Please RSVP: {$sampleRsvpLink}";
+    $message = "Dear {$guestName}, You have been invited to the upcoming event {$eventName}. Please RSVP: {$sampleRsvpLink}";
 
     $this->info("Sending sample event invitation SMS...");
     $this->info("Event: {$eventName}");

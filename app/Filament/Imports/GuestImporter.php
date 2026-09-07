@@ -111,7 +111,7 @@ class GuestImporter extends Importer
                 $eventName = $event->name ?? 'our event';
                 $guestName = trim($guest->title . ' ' . $guest->last_name);
                 $customerName = $guest->customer->full_name ?? 'our customer';
-                $message = "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Confirm: {$rsvpLink}";
+                $message = "Dear {$guestName}, You have been invited to the upcoming event {$eventName} on {$eventDate}. Confirm: {$rsvpLink}";
 
                 if ($guest->email) {
                     logger()->info('Sending RSVP email to guest: ' . $guest->email . ' for event: ' . $eventId);

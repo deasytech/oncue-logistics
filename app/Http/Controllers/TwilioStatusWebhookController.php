@@ -127,7 +127,7 @@ class TwilioStatusWebhookController extends Controller
         $rsvpLink = app(TinyUrlService::class)->shorten(route('rsvp.show', $rsvpToken));
         $message = $log->context === 'rsvp_reminder'
             ? "Hi {$guestName}, just a reminder to RSVP to {$eventName} on {$eventDate}. Tap here: {$rsvpLink}"
-            : "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
+            : "Dear {$guestName}, You have been invited to the upcoming event {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 
         Log::warning('Twilio status webhook: RSVP WhatsApp failed after being accepted, falling back to SMS.', [
             'log_id' => $log->id,

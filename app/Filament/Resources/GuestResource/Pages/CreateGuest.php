@@ -65,7 +65,7 @@ class CreateGuest extends CreateRecord
                 $eventDate = $event->event_date?->format('F j, Y') ?? 'Date: TBA';
                 $guestName = trim($guest->title . ' ' . $guest->last_name);
                 $customerName = $guest->customer->full_name ?? 'our customer';
-                $message = "Hi {$guestName}, you're invited to {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
+                $message = "Dear {$guestName}, You have been invited to the upcoming event {$eventName} on {$eventDate}. Please RSVP: {$rsvpLink}";
 
                 $twilioService = app(TwilioService::class);
                 $to = $twilioService->formatE164($guest->phone);
